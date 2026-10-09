@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REALWORLD — Şəhərin Özü Oyundur | Pro Karabakh Edition</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #070D1B;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --primary: #0284C7;
+      --primary-neon: #38BDF8;
+      --accent-gold: #FACC15;
+      --accent-green: #22C55E;
+      --border-color: rgba(56, 189, 248, 0.25);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1240px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Top Bar Live Notification Ticker */
+    .live-ticker {
+      background: rgba(2, 132, 199, 0.15);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 0;
+      font-size: 13px;
+      color: var(--primary-neon);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ticker-pulse {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Navbar */
+    .navbar {
+      padding: 16px 0;
+      background: rgba(7, 13, 27, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--primary-neon);
+      text-decoration: none;
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-badge {
+      background: #0284C7;
+      color: #FFF;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .logo span { color: #FFF; }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: color 0.3s;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover { color: var(--primary-neon); }
+
+    .btn-nav {
+      background: var(--primary);
+      color: #FFF !important;
+      padding: 9px 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 60px 0 40px;
+    }
+
+    .hero-container {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .hero-text h1 {
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 18px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #38BDF8 0%, #818CF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-text p {
+      color: var(--text-muted);
+      font-size: 16px;
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+
+    /* Interactive Search & Quick Join Filter */
+    .quick-join-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 8px 12px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .quick-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #FFF;
+      padding: 10px;
+      flex: 1;
+      font-size: 14px;
+    }
+
+    /* Interactive Tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--primary);
+      color: #FFF;
+      border-color: var(--primary-neon);
+    }
+
+    /* Regions Grid */
+    .regions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 25px;
+      margin-bottom: 50px;
+    }
+
+    .region-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .region-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--primary-neon);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
+    }
+
+    .img-wrapper {
+      position: relative;
+      width: 100%;
+      height: 190px;
+      background: #0F172A;
+    }
+
+    .region-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+    }
+
+    .badge-location {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(2, 132, 199, 0.9);
+      color: #FFF;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-xp {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--accent-gold);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .region-info {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+
+    .region-info h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #FFF;
+    }
+
+    .region-info p {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+
+    .card-footer-link {
+      color: var(--primary-neon);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 12px;
+    }
+
+    /* Live University Leaderboard Widget */
+    .leaderboard-widget {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 25px;
+      margin-bottom: 60px;
+    }
+
+    .lb-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .lb-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lb-rank {
+      font-weight: 900;
+      color: var(--primary-neon);
+      width: 25px;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(7, 13, 27, 0.88);
+      backdrop-filter: blur(15px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #1E293B;
+      border: 1px solid var(--primary-neon);
+      border-radius: 24px;
+      width: 90%;
+      max-width: 600px;
+      padding: 28px;
+      position: relative;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.35);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      font-size: 26px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .modal-photo {
+      width: 100%;
+      height: 230px;
+      object-fit: cover;
+      border-radius: 16px;
+      margin: 16px 0;
+      border: 1px solid var(--border-color);
+      background: #0F172A;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 0 20px rgba(2, 132, 199, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(30, 41, 59, 0.8);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px 0;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Live Ticker -->
+  <div class="live-ticker">
+    <div class="ticker-pulse"></div>
+    <span>CANLI: <strong>Qarabağ Universiteti</strong> tələbələri Xankəndi otağında <strong>+120 XP</strong> qazandı!</span>
+  </div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <span class="logo-badge">R</span> REAL<span>WORLD</span>
+      </a>
+      <ul class="nav-links">
+        <li><a onclick="filterCategory('all')">Bütün Bölgələr</a></li>
+        <li><a onclick="openModal('qarabag-uni')">Qarabağ U</a></li>
+        <li><a onclick="scrollToLeaderboard()">Liderlik Cədvəli</a></li>
+        <li><a onclick="openModal('how-it-works')">Oyun Mexanikası</a></li>
+        <li><a class="btn-nav" onclick="openModal('quick-code')">Otaq Kodu Daxil Et</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container" style="margin-top: 30px;">
+    
+    <!-- Hero Header -->
+    <div class="hero">
+      <div class="hero-container">
+        <div class="hero-text">
+          <h1>Şəhərin Özü Oyundur.<br><span class="gradient-text">Qarabağı Realtime Oyna!</span></h1>
+          <p>Xankəndi, Şuşa və Ağdamda dostlarınla canlı otaqlar yaradın, missiya fotoları yükləyin, səs toplayaraq reytinqdə 1-ci olun.</p>
+          
+          <!-- Quick Join Input Widget -->
+          <div class="quick-join-bar">
+            <input type="text" id="joinCodeInput" class="quick-input" placeholder="6 rəqəmli otaq kodunu yazın (Məs: 849201)..." maxLength="6" />
+            <button class="btn btn-primary" onclick="handleQuickJoin()">Dərhal Qoşul 🚀</button>
+          </div>
+        </div>
+
+        <!-- Live Mission Counter Card -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 25px;">
+          <h3 style="color: var(--primary-neon); margin-bottom: 15px;">⏱ Günün Aktəv Zəncir Missiyası</h3>
+          <div style="background: #0F172A; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+            <p style="font-weight: 700; font-size: 15px; margin-bottom: 5px;">“Qarabağ Universiteti mərkəzində ən yaradıcı komanda fotosunu çək!”</p>
+            <p style="color: var(--accent-gold); font-size: 12px; font-weight: 700;">🎁 Mükafat: +150 XP & Həftəlik Rozet</p>
+          </div>
+          <button class="btn btn-primary" style="width: 100%;" onclick="openModal('qarabag-uni')">Fotosunu Göndər Və Səs Topla</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+      <button class="tab-btn active" onclick="filterCategory('all', this)">Hamısı (6)</button>
+      <button class="tab-btn" onclick="filterCategory('uni', this)">🎓 Qarabağ Universiteti</button>
+      <button class="tab-btn" onclick="filterCategory('historical', this)">🏛️ Tarixi Məkanlar</button>
+      <button class="tab-btn" onclick="filterCategory('nature', this)">🌿 Təbiət & Mənzərə</button>
+    </div>
+
+    <!-- Regions Cards Grid -->
+    <div class="regions-grid" id="regionsGrid">
+
+      <div class="region-card" data-cat="historical" onclick="openModal('susha')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Şuşa</span>
+          <span class="badge-xp">+100 XP</span>
+          <img src="https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/susha.jpg';" 
+               alt="Şuşa Qalası" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>Şuşa Qalası Və Cıdır Düzü</h3>
+            <p>Tarixi Şuşa Qalası divarları önündə komanda pozası ver və Cıdır Düzü mənzərəli fotonu çək.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>📄</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="region-card" data-cat="uni" onclick="openModal('qarabag-uni')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Xankəndi</span>
+          <span class="badge-xp">+80 XP</span>
+          <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/qarabag-uni.jpg';" 
+               alt="Qarabağ Universiteti Kampusu" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>Qarabağ Universiteti Kampusu</h3>
+            <p>Xankəndi kampusu həyatında tələbə yoldaşlarınla mərkəzi meydanda zəncirvari yarışmaya qoşul.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>🎓</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="region-card" data-cat="historical" onclick="openModal('agdam')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Ağdam</span>
+          <span class="badge-xp">+90 XP</span>
+          <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/agdam.jpg';" 
+               alt="Ağdam Məscidi" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>Ağdam Məscidi Və Şəhər Parkı</h3>
+            <p>Yenidən qurulan Ağdamın tarixi məkanlarında və parklarında əsas sürətli foto zəncirini icra et.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>🏛️</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="region-card" data-cat="nature" onclick="openModal('lacin')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Laçın</span>
+          <span class="badge-xp">+85 XP</span>
+          <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/lacin.jpg';" 
+               alt="Həkəri Çayı" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>Həkəri Çayı Və Laçın Seyrəngahı</h3>
+            <p>Laçın bulvarında və Həkəri çayı sahilində ən mənzərəli günəş batımı komanda fotosunu çək.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>🌿</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="region-card" data-cat="nature" onclick="openModal('kelbecer')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Kəlbəcər</span>
+          <span class="badge-xp">+120 XP</span>
+          <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/kelbecer.jpg';" 
+               alt="İstisu" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>İstisu Və Murovdağ Zirvəsi</h3>
+            <p>İstisu bulağının yanında və ekstremal dağ mənzərəsi foto zəncirini icra et.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>🏔️</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="region-card" data-cat="historical" onclick="openModal('cebrayil')">
+        <div class="img-wrapper">
+          <span class="badge-location">📍 Cəbrayıl & Zəngilan</span>
+          <span class="badge-xp">+95 XP</span>
+          <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&auto=format&fit=crop&q=80" 
+               onerror="this.onerror=null; this.src='images/cebrayil.jpg';" 
+               alt="Xudafərin" class="region-img" />
+        </div>
+        <div class="region-info">
+          <div>
+            <h3>Xudafərin Körpüsü Və Ağalı</h3>
+            <p>Ağıllı kənd modelində innovativ komanda fotosunu və Xudafərin mənzərəsini yüklə.</p>
+          </div>
+          <div class="card-footer-link">
+            <span>Pəncərəni Aç Və Oyna ›</span>
+            <span>🌉</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live Leaderboard Widget -->
+    <div class="leaderboard-widget" id="leaderboardSection">
+      <div class="lb-header">
+        <div>
+          <h2 style="font-size: 24px; font-weight: 800;">🏆 Qarabağ Universiteti Tələbə Reytinqi</h2>
+          <p style="color: var(--text-muted); font-size: 13px;">Həftəlik ən çox XP toplayan aktiv tələbə komandaları</p>
+        </div>
+        <span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 12px;">● Canlı Yenilənir</span>
+      </div>
+
+      <div class="lb-row">
+        <div class="lb-user">
+          <span class="lb-rank">🥇 1.</span>
+          <div>
+            <strong style="color: #FFF;">Elış (Data Analitika)</strong>
+            <p style="color: var(--text-muted); font-size: 11px;">Qarabağ Universiteti • Xankəndi</p>
+          </div>
+        </div>
+        <span style="color: var(--accent-gold); font-weight: 900;">1,450 XP</span>
+      </div>
+
+      <div class="lb-row">
+        <div class="lb-user">
+          <span class="lb-rank">🥈 2.</span>
+          <div>
+            <strong style="color: #FFF;">Aysel_Baku</strong>
+            <p style="color: var(--text-muted); font-size: 11px;">Qarabağ Universiteti • Şuşa Missiyası</p>
+          </div>
+        </div>
+        <span style="color: var(--accent-gold); font-weight: 900;">1,120 XP</span>
+      </div>
+
+      <div class="lb-row">
+        <div class="lb-user">
+          <span class="lb-rank">🥉 3.</span>
+          <div>
+            <strong style="color: #FFF;">Rəşad_99</strong>
+            <p style="color: var(--text-muted); font-size: 11px;">Ağdam Smart City Otağı</p>
+          </div>
+        </div>
+        <span style="color: var(--accent-gold); font-weight: 900;">980 XP</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dynamic Modal Popup -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal()">&times;</span>
+      <h3 class="modal-title" id="mTitle">Missiya Başlığı</h3>
+      <img src="" id="mImg" class="modal-photo" alt="Mission Photo" />
+      <p class="modal-desc" id="mDesc">Missiya təsviri bura gələcək.</p>
+      
+      <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: 12px; margin-bottom: 20px;">
+        <span style="color: var(--primary-neon); font-weight: 700; font-size: 13px;">👥 Otaq Statusu: <span style="color: var(--accent-green);">12 Oyunçu Aktivdir</span></span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" style="flex:1;" onclick="triggerJoin()">Bu Missiyaya Qoşul 🚀</button>
+        <button class="btn btn-secondary" onclick="closeModal()">Bağla</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 REALWORLD. Qarabağ Universiteti tələbə layihəsi.</p>
+    </div>
+  </footer>
+
+  <script>
+    const modalData = {
+      susha: {
+        title: "Şuşa Qalası Və Cıdır Düzü Missiyası",
+        desc: "Şuşa Cıdır Düzü və Qala divarları ətrafında komandanla yaradıcı fotoşəkil çək və yüklə. Ən çox səs toplayan komanda +100 XP qazanır!",
+        img: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=800&auto=format&fit=crop&q=80"
+      },
+      "qarabag-uni": {
+        title: "Qarabağ Universiteti Kampus Missiyası",
+        desc: "Xankəndi kampusunda tələbə yoldaşlarınla mərkəzi meydanda zəncirvari yarışmaya qoşul!",
+        img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=80"
+      },
+      agdam: {
+        title: "Ağdam Məscidi Və Şəhər Parkı",
+        desc: "Yenidən qurulan Ağdamın tarixi məkanlarında və parklarında sürətli foto zəncirini icra et.",
+        img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&auto=format&fit=crop&q=80"
+      },
+      lacin: {
+        title: "Həkəri Çayı Və Laçın Seyrəngahı",
+        desc: "Laçın bulvarında və Həkəri çayı sahilində ən mənzərəli günəş batımı komanda fotosunu çək.",
+        img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80"
+      },
+      kelbecer: {
+        title: "İstisu Və Murovdağ Zirvəsi",
+        desc: "İstisu bulağının yanında və ekstremal dağ mənzərəsi foto zəncirini icra et.",
+        img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&auto=format&fit=crop&q=80"
+      },
+      cebrayil: {
+        title: "Xudafərin Körpüsü Və Ağalı",
+        desc: "Ağıllı kənd modelində innovativ komanda fotosunu və Xudafərin mənzərəsini yüklə.",
+        img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&auto=format&fit=crop&q=80"
+      },
+      "quick-code": {
+        title: "Otaq Kodunu Daxil Et Və Qoşul",
+        desc: "Dostunuzun sizə göndərdiyi 6 rəqəmli otaq kodunu daxil edərək dərhal canlı missiyaya daxil olun.",
+        img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=80"
+      },
+      "how-it-works": {
+        title: "REALWORLD Oynamaq Qaydaları",
+        desc: "1. Ləqəbini daxil et.\n2. BÖlgə missiyasını seç və ya 6 rəqəmli otaq kodu yarat.\n3. Dostlarını dəvət et.\n4. Fotoları yükləyin və ən yaxşı kadrı səsvermə ilə qalib edin!",
+        img: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=800&auto=format&fit=crop&q=80"
+      }
+    };
+
+    function filterCategory(cat, btn) {
+      if (btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+      const cards = document.querySelectorAll('.region-card');
+      cards.forEach(card => {
+        if (cat === 'all' || card.getAttribute('data-cat') === cat) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function openModal(key) {
+      const data = modalData[key] || modalData['qarabag-uni'];
+      document.getElementById('mTitle').innerText = data.title;
+      document.getElementById('mDesc').innerText = data.desc;
+      document.getElementById('mImg').src = data.img;
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    function triggerJoin() {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      alert("Otağa qoşulma linki kopyalandı! Oynamağa başlayırsınız.");
+      closeModal();
+    }
+
+    function handleQuickJoin() {
+      const code = document.getElementById('joinCodeInput').value;
+      if (!code || code.length < 6) {
+        alert("Zəhmət olmasa 6 rəqəmli otaq kodunu tam daxil edin!");
+        return;
+      }
+      confetti({ particleCount: 100, spread: 70 });
+      openModal('quick-code');
+    }
+
+    function scrollToLeaderboard() {
+      document.getElementById('leaderboardSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Particle Canvas Animation
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const particles = Array.from({ length: 35 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      radius: Math.random() * 2 + 1
+    }));
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+  </script>
+</body>
+</html>
