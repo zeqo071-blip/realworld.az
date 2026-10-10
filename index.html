@@ -11,6 +11,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+  <!-- Leaflet Xəritə Kitabxanası -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     :root {
       --bg-dark: #070D1B;
@@ -47,6 +51,20 @@
       width: 92%; max-width: 1240px; margin: 0 auto;
       position: relative; z-index: 10;
     }
+
+    #toastContainer {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+    }
+    .toast {
+      background: rgba(30, 41, 59, 0.95); border: 1px solid var(--primary-neon);
+      color: #FFF; padding: 12px 18px; border-radius: 12px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: auto;
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+      display: flex; align-items: center; gap: 10px;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
 
     .live-ticker {
       background: rgba(2, 132, 199, 0.15);
@@ -124,6 +142,15 @@
     }
     .hero-text p { color: var(--text-muted); font-size: 15px; margin-bottom: 22px; line-height: 1.6; }
 
+    .gamify-bar {
+      display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .gamify-badge-box {
+      background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.4);
+      padding: 8px 14px; border-radius: 12px; font-size: 13px; color: var(--accent-gold); font-weight: 700;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+
     .quick-join-bar {
       background: var(--card-bg); border: 1px solid var(--border-color);
       border-radius: 16px; padding: 6px 8px; display: flex; gap: 8px; margin-bottom: 25px; flex-wrap: wrap;
@@ -166,6 +193,19 @@
       color: var(--primary-neon); font-size: 12px; font-weight: 700;
       display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;
     }
+
+    #mapSection {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 20px; padding: 20px; margin-bottom: 40px; display: none;
+    }
+    #mapSection.active { display: block; }
+    #realworldMap { height: 420px; width: 100%; border-radius: 14px; border: 1px solid var(--border-color); z-index: 1; }
+
+    /* Klan Paneli Səhifəsi */
+    .clan-hub-page { display: none; padding: 30px 0; }
+    .clan-hub-page.active { display: block; }
+    .clan-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+    @media(max-width: 900px) { .clan-grid { grid-template-columns: 1fr; } }
 
     .leaderboard-widget { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; margin-bottom: 50px; }
     .lb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
@@ -216,12 +256,8 @@
     .modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
     .admin-section {
-      display: none;
-      margin-top: 30px;
-      background: rgba(30, 41, 59, 0.9);
-      border: 2px solid var(--accent-red);
-      border-radius: 20px;
-      padding: 24px;
+      display: none; margin-top: 30px; background: rgba(30, 41, 59, 0.9);
+      border: 2px solid var(--accent-red); border-radius: 20px; padding: 24px;
       box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
     }
     .admin-section.active { display: block; }
@@ -270,6 +306,7 @@
 <body>
 
   <canvas id="particles-canvas"></canvas>
+  <div id="toastContainer"></div>
 
   <div class="live-ticker">
     <div class="ticker-pulse"></div>
@@ -293,7 +330,8 @@
       <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
       <ul class="nav-links" id="navLinks">
         <li><a onclick="exitRoomToMain(); filterCategory('all'); closeMobileMenu();">Bütün Bölgələr</a></li>
-        <li><a onclick="enterRoom('849201', 'Qarabağ Universiteti Mərkəzi Otağı'); closeMobileMenu();">Qarabağ U</a></li>
+        <li><a onclick="toggleMapSection(); closeMobileMenu();" style="color: var(--accent-gold); font-weight:800;">🗺️ İnteraktiv Xəritə</a></li>
+        <li><a onclick="openClanHub(); closeMobileMenu();" style="color: var(--primary-neon); font-weight: 800;">🛡️ Klan Mərkəzi</a></li>
         <li><a onclick="exitRoomToMain(); scrollToLeaderboard(); closeMobileMenu();">Liderlik Cədvəli</a></li>
         <li><a class="btn-nav" onclick="openCreateRoomModal()">Otaq Yarat ➕</a></li>
         <li><a class="btn-nav" onclick="openQuickJoinModal()">Otaq Kodu Daxil Et</a></li>
@@ -307,6 +345,10 @@
     <div class="hero">
       <div class="hero-container">
         <div class="hero-text">
+          <div class="gamify-bar">
+            <div class="gamify-badge-box" onclick="claimDailyStreak()">🔥 Gündəlik Streak: <span id="streakCount">1</span> Gün (Mükafatı Al)</div>
+            <div class="gamify-badge-box" style="color: var(--primary-neon); border-color: var(--primary-neon);" onclick="openClanHub()">🛡️ Klanım: <span id="userClanName">Yoxdur (Qur / Qoşul)</span></div>
+          </div>
           <h1>Şəhərin Özü Oyundur.<br><span class="gradient-text">Qarabağı Realtime Oyna!</span></h1>
           <p>Xankəndi, Şuşa və Ağdamda dostlarınla canlı otaqlar yaradın, missiya fotoları yükləyin, səs toplayaraq reytinqdə 1-ci olun.</p>
           <div class="quick-join-bar">
@@ -323,6 +365,15 @@
           <button class="btn btn-primary" style="width: 100%;" onclick="enterRoom('849201', 'Günün Əsas Missiya Otağı')">Otağa Daxil Ol və Göndər</button>
         </div>
       </div>
+    </div>
+
+    <!-- İnteraktiv Canlı Xəritə Bölməsi -->
+    <div id="mapSection">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="font-size: 18px; color: var(--primary-neon);">🗺️ İnteraktiv Qarabağ Missiya Xəritəsi</h2>
+        <button class="btn btn-secondary" onclick="toggleMapSection()" style="padding: 6px 12px; font-size: 12px;">Xəritəni Bağla ✖</button>
+      </div>
+      <div id="realworldMap"></div>
     </div>
 
     <div class="filter-tabs">
@@ -434,6 +485,47 @@
 
   </div>
 
+  <!-- Klan Mərkəzi Səhifəsi -->
+  <div class="container clan-hub-page" id="clanHubPage">
+    <div class="room-header-box">
+      <div>
+        <span style="background: var(--accent-gold); color: #000; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;">🛡️ Klan ID: <span id="activeClanIdText">Yoxdur</span></span>
+        <h2 style="margin-top: 8px; font-size: 22px; color: var(--primary-neon);" id="activeClanNameTitle">Klan Mərkəzi</h2>
+      </div>
+      <button class="btn btn-secondary" onclick="exitClanHub()">← Ana Səhifəyə Qayıt</button>
+    </div>
+
+    <div class="clan-grid">
+      <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+        <h3 style="font-size: 16px; color: var(--accent-gold);">⚔️ Klan Seçimləri və İdarəetmə</h3>
+        <p style="font-size: 13px; color: var(--text-muted);">Siz yeni klan yarada və ya dostunuzun yaratdığı klanın 6 rəqəmli ID nömrəsini daxil edərək qoşula bilərsiniz.</p>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="openCreateClanModal()">Yeni Klan Yarat ➕</button>
+          <button class="btn btn-secondary" onclick="openJoinClanModal()">Klan ID ilə Qoşul 🔗</button>
+        </div>
+
+        <div style="background: #0F172A; padding: 14px; border-radius: 12px; margin-top: 10px;">
+          <h4 style="font-size: 14px; color: var(--primary-neon); margin-bottom: 8px;">👥 Klan Üzvləri</h4>
+          <div id="clanMemberList" style="font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+            <div>● Siz (Klan Üzvü)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-container" style="display: flex; flex-direction: column;">
+        <p style="font-size: 13px; color: var(--primary-neon); font-weight: 700; margin-bottom: 8px;">💬 Klanın Xüsusi Söhbət Yeri</p>
+        <div class="chat-messages" id="clanChatMessagesBox" style="flex-grow: 1; height: 320px;">
+          <div class="chat-msg"><span>Sistem:</span> Klan söhbətinə xoş gəldiniz!</div>
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 10px;">
+          <input type="text" id="clanChatInput" class="input-field" placeholder="Klan yoldaşlarına yaz..." style="margin-bottom:0; font-size: 12px; padding: 8px;" />
+          <button class="btn btn-primary" style="padding: 8px 14px;" onclick="sendClanChatMessage()">Göndər</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="container room-view-page" id="roomViewPage">
     <div class="room-header-box">
       <div>
@@ -475,6 +567,38 @@
             <button class="btn btn-primary" style="padding: 8px 14px;" onclick="sendChatMessage()">Göndər</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Klan Yaratma Modalı -->
+  <div class="modal-overlay" id="createClanModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeCreateClanModal()">&times;</span>
+      <h3>🛡️ Yeni Klan Yarat</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Klan adı daxil edin. Sistem avtomatik olaraq qoşulmaq üçün 6 rəqəmli Klan ID verəcək.</p>
+      <div style="margin: 15px 0;">
+        <input type="text" id="newClanNameInput" class="input-field" placeholder="Klanın Adı (Məs: Qarabağ Qartalları)" maxLength="30" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" style="flex:1;" onclick="confirmCreateClan()">Klanı Qۇر və ID Al 🚀</button>
+        <button class="btn btn-secondary" onclick="closeCreateClanModal()">Bağla</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Klan ID ilə Qoşulma Modalı -->
+  <div class="modal-overlay" id="joinClanModal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeJoinClanModal()">&times;</span>
+      <h3>🔗 Klan ID ilə Qoşul</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Dostunuzun sizə göndərdiyi 6 rəqəmli Klan ID nömrəsini daxil edin.</p>
+      <div style="margin: 15px 0;">
+        <input type="text" id="joinClanIdInput" class="input-field" placeholder="6 rəqəmli Klan ID (Məs: 549210)" maxLength="6" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" style="flex:1;" onclick="confirmJoinClan()">Klana Qoşul 🚀</button>
+        <button class="btn btn-secondary" onclick="closeJoinClanModal()">Bağla</button>
       </div>
     </div>
   </div>
@@ -604,17 +728,34 @@
       } catch(e) {}
     }
 
+    function showToast(message, icon = "🔔") {
+      const container = document.getElementById('toastContainer');
+      if(!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
     let userXP = parseInt(localStorage.getItem('rw_user_xp')) || 0;
     let userNickname = localStorage.getItem('rw_user_nickname') || "";
     let userFullName = localStorage.getItem('rw_user_fullname') || "";
     let userAvatar = localStorage.getItem('rw_user_avatar') || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80";
     let userBadges = JSON.parse(localStorage.getItem('rw_user_badges')) || [];
     let activeBadge = localStorage.getItem('rw_active_badge') || "";
+    let userStreak = parseInt(localStorage.getItem('rw_user_streak')) || 1;
+    let lastStreakDate = localStorage.getItem('rw_last_streak_date') || "";
+    
+    let userClanName = localStorage.getItem('rw_user_clan_name') || "Hələ yoxdur";
+    let userClanId = localStorage.getItem('rw_user_clan_id') || "------";
+
     let isAdminLoggedIn = localStorage.getItem('rw_is_admin') === 'true';
     let currentRoomCode = "849201";
     let currentRoomTitle = "Qarabağ Universiteti Mərkəzi Otağı";
     let selectedImageFile = null;
     let selectedAvatarFile = null;
+    let leafletMap = null;
 
     const allBadgesList = [
       "🚀 İlk 10-luq", "📸 Missiya Fatehi", "💬 Çat Masteri", "👑 Reytinq Lideri",
@@ -625,7 +766,7 @@
     const feedMessages = [
       "Elşən Şuşa missiyasını tamamladı (+100 XP)",
       "Aygün Kəlbəcər otağına qoşuldu",
-      "Murad yeni otaq yaratdı (Kod: 492011)",
+      "Murad yeni klan yaratdı (ID: 748291)",
       "Zakir admin panelindən missiyanı təsdiqlədi"
     ];
     let feedIndex = 0;
@@ -634,6 +775,40 @@
       const feedEl = document.getElementById('liveFeedText');
       if(feedEl) feedEl.innerHTML = `CANLI LENT: <strong>${feedMessages[feedIndex]}</strong>`;
     }, 4000);
+
+    function toggleMapSection() {
+      const mapSec = document.getElementById('mapSection');
+      if (!mapSec) return;
+      const isVisible = mapSec.classList.contains('active');
+      if (isVisible) {
+        mapSec.classList.remove('active');
+      } else {
+        mapSec.classList.add('active');
+        initMap();
+        mapSec.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function initMap() {
+      if (leafletMap) return;
+      leafletMap = L.map('realworldMap').setView([39.8153, 46.7519], 9);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(leafletMap);
+
+      const locations = [
+        { name: "Qarabağ Universiteti Kampusu", lat: 39.8153, lng: 46.7519, code: "849201" },
+        { name: "Şuşa Qalası Və Cıdır Düzü", lat: 39.7537, lng: 46.7465, code: "849202" },
+        { name: "Ağdam Məscidi Və Parkı", lat: 39.9931, lng: 46.9281, code: "849203" },
+        { name: "Laçın Seyrəngahı", lat: 39.6383, lng: 46.5461, code: "849204" },
+        { name: "Kəlbəcər İstisu", lat: 40.1024, lng: 46.0365, code: "849205" }
+      ];
+
+      locations.forEach(loc => {
+        L.marker([loc.lat, loc.lng]).addTo(leafletMap)
+          .bindPopup(`<b>${loc.name}</b><br><button onclick="enterRoom('${loc.code}', '${loc.name}')" style="background:#0284C7; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; margin-top:5px; font-weight:bold;">Otağa Keç 🚀</button>`);
+      });
+    }
 
     function checkAuthGuard() {
       if (!userNickname && !isAdminLoggedIn) {
@@ -671,7 +846,13 @@
       if(xpDisp) xpDisp.innerText = `${userXP.toLocaleString()} XP`;
       
       const lbName = document.getElementById('lbUserName');
-      if(lbName) lbName.innerText = userNickname ? `@${userNickname} ${activeBadge ? '['+activeBadge+']' : ''}` : "İstifadəçi";
+      if(lbName) lbName.innerText = userNickname ? `@${userNickname} ${activeBadge ? '['+activeBadge+']' : ''} [Klan: ${userClanName}]` : "İstifadəçi";
+
+      const streakEl = document.getElementById('streakCount');
+      if(streakEl) streakEl.innerText = userStreak;
+
+      const clanEl = document.getElementById('userClanName');
+      if(clanEl) clanEl.innerText = userClanName !== "Hələ yoxdur" ? `${userClanName} (ID: ${userClanId})` : "Yoxdur (Qur / Qoşul)";
 
       if (userXP >= 1000 && !userBadges.includes("🌟 Əfsanəvi Oyunçu")) userBadges.push("🌟 Əfsanəvi Oyunçu");
 
@@ -681,6 +862,123 @@
       localStorage.setItem('rw_user_avatar', userAvatar);
       localStorage.setItem('rw_user_badges', JSON.stringify(userBadges));
       localStorage.setItem('rw_active_badge', activeBadge);
+      localStorage.setItem('rw_user_streak', userStreak);
+      localStorage.setItem('rw_user_clan_name', userClanName);
+      localStorage.setItem('rw_user_clan_id', userClanId);
+    }
+
+    function claimDailyStreak() {
+      if(!checkAuthGuard()) return;
+      const today = new Date().toDateString();
+      if(lastStreakDate === today) {
+        showToast("Bugünkü streak mükafatını artıq almısın!", "⚠️");
+        return;
+      }
+      lastStreakDate = today;
+      localStorage.setItem('rw_last_streak_date', today);
+      userStreak += 1;
+      userXP += 50;
+      updateAppUI();
+      confetti({ particleCount: 70 });
+      playBeep(750);
+      showToast("Gündəlik streak bonusu alındı: +50 XP!", "🔥");
+    }
+
+    /* Klan İdarəetmə Funksiyaları */
+    function openClanHub() {
+      if(!checkAuthGuard()) return;
+      playBeep(500);
+      const home = document.getElementById('mainHomeContent');
+      const hub = document.getElementById('clanHubPage');
+      const mapSec = document.getElementById('mapSection');
+      if(mapSec) mapSec.classList.remove('active');
+      if(home) home.style.display = 'none';
+      if(hub) hub.classList.add('active');
+
+      const idText = document.getElementById('activeClanIdText');
+      const nameText = document.getElementById('activeClanNameTitle');
+      if(idText) idText.innerText = userClanId;
+      if(nameText) nameText.innerText = userClanName !== "Hələ yoxdur" ? `Klan: ${userClanName}` : "Klan Mərkəzi";
+
+      loadClanChatMessages();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function exitClanHub() {
+      playBeep(400);
+      const home = document.getElementById('mainHomeContent');
+      const hub = document.getElementById('clanHubPage');
+      if(hub) hub.classList.remove('active');
+      if(home) home.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openCreateClanModal() { document.getElementById('createClanModal').classList.add('active'); }
+    function closeCreateClanModal() { document.getElementById('createClanModal').classList.remove('active'); }
+
+    function openJoinClanModal() { document.getElementById('joinClanModal').classList.add('active'); }
+    function closeJoinClanModal() { document.getElementById('joinClanModal').classList.remove('active'); }
+
+    function confirmCreateClan() {
+      const input = document.getElementById('newClanNameInput');
+      const cName = input ? input.value.trim() : "";
+      if(!cName) { alert("Zəhmət olmasa klan adını daxil edin!"); return; }
+
+      const generatedClanId = Math.floor(100000 + Math.random() * 900000).toString();
+      userClanName = cName;
+      userClanId = generatedClanId;
+
+      updateAppUI();
+      closeCreateClanModal();
+      confetti({ particleCount: 100 });
+      showToast(`Klan yaradıldı! Klan ID: ${generatedClanId}`, "🛡️");
+      if(input) input.value = "";
+      openClanHub();
+    }
+
+    function confirmJoinClan() {
+      const input = document.getElementById('joinClanIdInput');
+      const cId = input ? input.value.trim() : "";
+      if(!cId || cId.length < 6) { alert("Zəhmət olmasa 6 rəqəmli düzgün Klan ID daxil edin!"); return; }
+
+      userClanId = cId;
+      userClanName = `Klan #${cId}`;
+
+      updateAppUI();
+      closeJoinClanModal();
+      confetti({ particleCount: 80 });
+      showToast(`Klan ID (${cId}) ilə klana qoşuldunuz!`, "🔗");
+      if(input) input.value = "";
+      openClanHub();
+    }
+
+    function loadClanChatMessages() {
+      const chatBox = document.getElementById('clanChatMessagesBox');
+      if(!chatBox) return;
+      const messages = JSON.parse(localStorage.getItem(`rw_clan_chat_${userClanId}`)) || [
+        { sender: "Sistem", text: `"${userClanName}" klanının söhbət otağına xoş gəldiniz!` }
+      ];
+      chatBox.innerHTML = "";
+      messages.forEach(m => {
+        chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendClanChatMessage() {
+      const input = document.getElementById('clanChatInput');
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+      if (userClanId === "------") { alert("Əvvəlcə bir klana qoşulun və ya klan yaradın!"); return; }
+
+      playBeep(500);
+      const senderName = isAdminLoggedIn ? "Admin" : `@${userNickname}`;
+      let messages = JSON.parse(localStorage.getItem(`rw_clan_chat_${userClanId}`)) || [];
+      messages.push({ sender: senderName, text: text });
+      localStorage.setItem(`rw_clan_chat_${userClanId}`, JSON.stringify(messages));
+
+      if(input) input.value = "";
+      loadClanChatMessages();
     }
 
     function toggleMobileMenu() { 
@@ -719,6 +1017,8 @@
 
       const home = document.getElementById('mainHomeContent');
       const room = document.getElementById('roomViewPage');
+      const mapSec = document.getElementById('mapSection');
+      if(mapSec) mapSec.classList.remove('active');
       if(home) home.style.display = 'none';
       if(room) room.classList.add('active');
 
@@ -735,13 +1035,16 @@
 
       loadChatMessages();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast(`Otağa qoşuldunuz: ${title}`, "🏠");
     }
 
     function exitRoomToMain() {
       playBeep(400);
       const home = document.getElementById('mainHomeContent');
       const room = document.getElementById('roomViewPage');
+      const hub = document.getElementById('clanHubPage');
       if(room) room.classList.remove('active');
+      if(hub) hub.classList.remove('active');
       if(home) home.style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -785,6 +1088,7 @@
       confetti({ particleCount: 90, spread: 65 });
       closeCreateRoomModal();
       enterRoom(randomCode, roomName);
+      showToast(`Yeni otaq yaradıldı: Kodu ${randomCode}`, "🚀");
     }
 
     function openAuthModal() {
@@ -888,7 +1192,7 @@
         updateAppUI();
         const avImg = document.getElementById('profileAvatarImg');
         if(avImg) avImg.src = userAvatar;
-        alert("Profil şəkliniz cihazdan yüklənərək yeniləndi! 🎉");
+        showToast("Profil şəkliniz yeniləndi!", "🎉");
       };
       reader.readAsDataURL(selectedAvatarFile);
     }
@@ -897,6 +1201,7 @@
       activeBadge = badgeName;
       updateAppUI();
       openAuthModal();
+      showToast(`Aktiv rozet dəyişdirildi: ${badgeName}`, "🏅");
     }
 
     function handleRegister() {
@@ -928,11 +1233,11 @@
         if (!userBadges.includes("🚀 İlk 10-luq")) userBadges.push("🚀 İlk 10-luq");
         confetti({ particleCount: 180, spread: 100 });
         playBeep(800);
-        alert(`Təbriklər! Siz saytın ${registeredCount}-ci istifadəçisi olduğunuz üçün 100 XP və "🚀 İlk 10-luq" rozeti qazandınız! 🎉`);
+        showToast(`Təbriklər! 100 XP və "İlk 10-luq" rozeti qazandınız!`, "🚀");
       } else {
         userXP = 0;
         playBeep(500);
-        alert(`Uğurla qeydiyyatdan keçdiniz, xoş gəldiniz @${nickname}!`);
+        showToast(`Xoş gəldiniz @${nickname}!`, "✨");
       }
 
       updateAppUI();
@@ -945,9 +1250,11 @@
       userXP = 0;
       userBadges = [];
       activeBadge = "";
+      userClanName = "Hələ yoxdur";
+      userClanId = "------";
       updateAppUI();
       closeAuthModal();
-      alert("Hesabdan çıxış edildi.");
+      showToast("Hesabdan çıxış edildi.", "👋");
     }
 
     function loginAdmin() {
@@ -959,7 +1266,7 @@
         localStorage.setItem('rw_is_admin', 'true');
         playBeep(900);
         updateAppUI();
-        alert("🛡️ Uğurla Admin paneline daxil oldunuz!");
+        showToast("Admin panelinə daxil olundu!", "🛡️");
         closeAuthModal();
         scrollToAdminPanel();
       } else {
@@ -972,7 +1279,7 @@
       isAdminLoggedIn = false;
       localStorage.setItem('rw_is_admin', 'false');
       updateAppUI();
-      alert("Admin rejimindən çıxış edildi.");
+      showToast("Admin rejimindən çıxış edildi.", "🛡️");
       closeAuthModal();
     }
 
@@ -997,7 +1304,7 @@
         let pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
         
         pendingSubmissions.push({
-          userName: `@${userNickname} (${userFullName})`,
+          userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
           missionTitle: currentRoomTitle,
           reward: 100,
           image: base64Image
@@ -1005,7 +1312,7 @@
 
         localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
         playBeep(700);
-        alert("📸 Fotonuz uğurla admin panelə göndərildi! Admin təsdiq etdikdən sonra XP balansınıza əlavə olunacaq.");
+        showToast("Fotonuz admin təsdiqinə göndərildi!", "📤");
         selectedImageFile = null;
         const text = document.getElementById('fileUploadText');
         if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
@@ -1111,9 +1418,9 @@
       pendingSubmissions.splice(index, 1);
       localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
 
-      playBeep(880);
+      playBepper(880);
       confetti({ particleCount: 100 });
-      alert("Missiya təsdiq olundu və istifadəçiyə XP verildi!");
+      showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
       loadSubmissions();
     }
 
@@ -1122,7 +1429,7 @@
       pendingSubmissions.splice(index, 1);
       localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
 
-      alert("Missiya rədd edildi.");
+      showToast("Missiya rədd edildi.", "❌");
       loadSubmissions();
     }
 
