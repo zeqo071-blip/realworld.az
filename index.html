@@ -201,7 +201,6 @@
     #mapSection.active { display: block; }
     #realworldMap { height: 420px; width: 100%; border-radius: 14px; border: 1px solid var(--border-color); z-index: 1; }
 
-    /* Klan Paneli Səhifəsi */
     .clan-hub-page { display: none; padding: 30px 0; }
     .clan-hub-page.active { display: block; }
     .clan-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
@@ -270,7 +269,7 @@
     .actions { display: flex; gap: 10px; margin-top: auto; }
     .btn-approve { background: var(--accent-green); color: #FFF; flex: 1; }
     .btn-reject { background: var(--accent-red); color: #FFF; flex: 1; }
-    .empty-state { text-align: center; color: var(--text-muted); margin: 40px 0; font-size: 15px; grid-column: 1 / -1; }
+    .empty-state { text-align: center; color: var(--text-muted); margin: 20px 0; font-size: 14px; grid-column: 1 / -1; }
 
     .auth-tab-group { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); }
     .auth-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 700; font-size: 13px; }
@@ -451,36 +450,36 @@
       </div>
     </div>
 
+    <!-- Canlı Dinamik Liderlik Cədvəli -->
     <div class="leaderboard-widget" id="leaderboardSection">
       <div class="lb-header">
         <div>
-          <h2 style="font-size: 20px; font-weight: 800;">🏆 Qarabağ Universiteti Tələbə Reytinqi</h2>
-          <p style="color: var(--text-muted); font-size: 12px;">Həftəlik ən çox XP toplayan aktiv tələbə komandaları</p>
+          <h2 style="font-size: 20px; font-weight: 800;">🏆 Qarabağ Universiteti Canlı Reytinq Cədvəli</h2>
+          <p style="color: var(--text-muted); font-size: 12px;">Bütün qeydiyyatdan keçmiş istifadəçilərin topladığı XP-yə görə dinamik sıralaması</p>
         </div>
-        <span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 4px 10px; border-radius: 16px; font-weight: 800; font-size: 11px;">● Canlı</span>
+        <span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 4px 10px; border-radius: 16px; font-weight: 800; font-size: 11px;">● Aktiv Sıralama</span>
       </div>
       <div id="leaderboardList">
-        <div class="lb-row">
-          <div class="lb-user">
-            <span style="font-weight:900; color:var(--primary-neon);">🥇 1.</span>
-            <div>
-              <strong style="color: #FFF;" id="lbUserName">İstifadəçi</strong>
-              <p style="color: var(--text-muted); font-size: 11px;">Qarabağ Universiteti • Xankəndi</p>
-            </div>
-          </div>
-          <span style="color: var(--accent-gold); font-weight: 900;" id="userXpDisplay">0 XP</span>
-        </div>
+        <!-- Dinamik olaraq JS vasitəsilə dolur -->
       </div>
     </div>
 
+    <!-- Admin Panel Bölməsi -->
     <div class="admin-section" id="adminSection">
       <div class="admin-header">
         <h2 style="color: #F87171; font-size: 22px;">🛡️ REALWORLD Admin Panel</h2>
         <span style="background: rgba(239, 68, 68, 0.2); color: #F87171; padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 800;">İnzibatçı Rejimi</span>
       </div>
-      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">İstifadəçilər tərəfindən göndərilmiş missiya fotolarını nəzərdən keçirin və təsdiq/rədd edin.</p>
 
-      <div id="submissionsContainer" class="submissions-grid"></div>
+      <!-- Təsdiq gözləyən fotolar -->
+      <h3 style="font-size: 16px; color: var(--primary-neon); margin-bottom: 12px;">📸 Gözləyən Missiya Fotoları</h3>
+      <div id="submissionsContainer" class="submissions-grid" style="margin-bottom: 30px;"></div>
+
+      <!-- Aktiv İstifadəçilərin Siyahısı -->
+      <h3 style="font-size: 16px; color: var(--accent-gold); margin-bottom: 12px; border-top: 1px solid var(--border-color); padding-top: 20px;">👥 Sistemdəki Aktiv İstifadəçilər</h3>
+      <div id="adminUsersListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;">
+        <!-- Dinamik olaraq dolur -->
+      </div>
     </div>
 
   </div>
@@ -498,7 +497,7 @@
     <div class="clan-grid">
       <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
         <h3 style="font-size: 16px; color: var(--accent-gold);">⚔️ Klan Seçimləri və İdarəetmə</h3>
-        <p style="font-size: 13px; color: var(--text-muted);">Siz yeni klan yarada və ya dostunuzun yaratdığı klanın 6 rəqəmli ID nömrəsini daxil edərək qoşula bilərsiniz.</p>
+        <p style="font-size: 13px; color: var(--text-muted);">Siz yeni klan yarada və ya dostunuzun yaratdığı klanın 6 rəqəmli Klan ID nömrəsini daxil edərək qoşula bilərsiniz.</p>
         
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button class="btn btn-primary" onclick="openCreateClanModal()">Yeni Klan Yarat ➕</button>
@@ -581,7 +580,7 @@
         <input type="text" id="newClanNameInput" class="input-field" placeholder="Klanın Adı (Məs: Qarabağ Qartalları)" maxLength="30" />
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" style="flex:1;" onclick="confirmCreateClan()">Klanı Qۇر və ID Al 🚀</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="confirmCreateClan()">Klanı Qur və ID Al 🚀</button>
         <button class="btn btn-secondary" onclick="closeCreateClanModal()">Bağla</button>
       </div>
     </div>
@@ -634,58 +633,74 @@
     </div>
   </div>
 
+  <!-- Qeydiyyat və Giriş Modalı -->
   <div class="modal-overlay" id="authModal">
     <div class="modal-content">
       <span class="modal-close" onclick="closeAuthModal()">&times;</span>
       
       <div class="auth-tab-group" id="authTabGroup">
-        <div class="auth-tab active" id="tabRegisterBtn" onclick="switchAuthTab('register')">📝 Qeydiyyat / Profil</div>
-        <div class="auth-tab" id="tabAdminBtn" onclick="switchAuthTab('admin')">🛡️ Admin Girişi</div>
+        <div class="auth-tab active" id="tabRegisterBtn" onclick="switchAuthTab('register')">📝 Qeydiyyat</div>
+        <div class="auth-tab" id="tabLoginBtn" onclick="switchAuthTab('login')">🔑 Giriş</div>
+        <div class="auth-tab" id="tabAdminBtn" onclick="switchAuthTab('admin')">🛡️ Admin</div>
       </div>
 
+      <!-- Qeydiyyat Formu -->
       <div id="registerAuthForm">
-        <div id="loggedOutSection">
-          <h3 style="margin-bottom: 12px;">📝 Yeni Hesab Qeydiyyatı</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">İlk 10 qeydiyyatdan keçənə 100 XP və "İlk 10-luq" rozeti hədiyyə!</p>
-          <div style="margin: 15px 0;">
-            <input type="text" id="regFullName" class="input-field" placeholder="Ad və Soyad" />
-            <input type="text" id="regNickname" class="input-field" placeholder="Nickname (İstifadəçi adı)" />
-            <input type="password" id="regPass1" class="input-field" placeholder="Şifrə" />
-            <input type="password" id="regPass2" class="input-field" placeholder="Şifrəni təkrar daxil edin" />
-          </div>
-          <div class="modal-actions">
-            <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Qeydiyyatdan Keç ✨</button>
-          </div>
+        <h3 style="margin-bottom: 12px;">📝 Yeni Hesab Qeydiyyatı</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">İlk qeydiyyatdan keçənlərə 100 XP hədiyyə!</p>
+        <div style="margin: 15px 0;">
+          <input type="text" id="regFullName" class="input-field" placeholder="Ad və Soyad" />
+          <input type="text" id="regNickname" class="input-field" placeholder="Nickname (İstifadəçi adı)" />
+          <input type="password" id="regPass1" class="input-field" placeholder="Şifrə" />
+          <input type="password" id="regPass2" class="input-field" placeholder="Şifrəni təkrar daxil edin" />
         </div>
-
-        <div id="loggedInSection" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-            <img id="profileAvatarImg" src="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-neon);" alt="Avatar">
-            <div>
-              <h3 style="font-size: 16px;" id="profileUserDisplay">@nickname</h3>
-              <p style="font-size: 12px; color: var(--accent-gold);" id="profileXpval">0 XP</p>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 12px;">
-            <div class="file-upload-box" onclick="document.getElementById('profileImgInput').click()" style="margin: 0 0 10px 0; padding: 10px;">
-              <p id="avatarUploadText" style="font-size: 12px; color: var(--primary-neon); font-weight: 700;">📸 Profil Şəklini Seç (Cihazdan)</p>
-              <input type="file" id="profileImgInput" accept="image/*" style="display:none" onchange="handleAvatarFileSelected(event)" />
-            </div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="updateAvatarFile()">Şəkli Yenilə</button>
-          </div>
-
-          <div style="background: #0F172A; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 13px;">
-            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Qazanılmış Rozetlər (Aktivləşdirmək üçün klikləyin):</p>
-            <div id="userBadgesContainer"></div>
-          </div>
-
-          <div class="modal-actions">
-            <button class="btn btn-secondary" style="width:100%; background: var(--accent-red); color:#FFF;" onclick="handleLogout()">Hesabdan Çıxış Et</button>
-          </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Qeydiyyatdan Keç və Yadda Saxla ✨</button>
         </div>
       </div>
 
+      <!-- Giriş Formu -->
+      <div id="loginAuthForm" style="display: none;">
+        <h3 style="margin-bottom: 12px;">🔑 Hesaba Giriş</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">Əvvəlcədən yaratdığınız Nickname və şifrə ilə daxil olun.</p>
+        <div style="margin: 15px 0;">
+          <input type="text" id="loginNickname" class="input-field" placeholder="Nickname (İstifadəçi adı)" />
+          <input type="password" id="loginPass" class="input-field" placeholder="Şifrə" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">Giriş Et 🚀</button>
+        </div>
+      </div>
+
+      <!-- Daxil Olunduqdan Sonra Profil Görünüşü -->
+      <div id="loggedInSection" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <img id="profileAvatarImg" src="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-neon);" alt="Avatar">
+          <div>
+            <h3 style="font-size: 16px;" id="profileUserDisplay">@nickname</h3>
+            <p style="font-size: 12px; color: var(--accent-gold);" id="profileXpval">0 XP</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <div class="file-upload-box" onclick="document.getElementById('profileImgInput').click()" style="margin: 0 0 10px 0; padding: 10px;">
+            <p id="avatarUploadText" style="font-size: 12px; color: var(--primary-neon); font-weight: 700;">📸 Profil Şəklini Seç (Cihazdan)</p>
+            <input type="file" id="profileImgInput" accept="image/*" style="display:none" onchange="handleAvatarFileSelected(event)" />
+          </div>
+          <button class="btn btn-primary" style="width: 100%;" onclick="updateAvatarFile()">Şəkli Yenilə</button>
+        </div>
+
+        <div style="background: #0F172A; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 13px;">
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Qazanılmış Rozetlər (Aktivləşdirmək üçün klikləyin):</p>
+          <div id="userBadgesContainer"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" style="width:100%; background: var(--accent-red); color:#FFF;" onclick="handleLogout()">Hesabdan Çıxış Et</button>
+        </div>
+      </div>
+
+      <!-- Admin Formu -->
       <div id="adminAuthForm" style="display: none;">
         <h3 style="margin-bottom: 12px; color: #F87171;">🛡️ Admin Hesabına Giriş</h3>
         <div style="margin: 15px 0;">
@@ -831,6 +846,7 @@
         const adminSec = document.getElementById('adminSection');
         if(adminSec) adminSec.classList.add('active');
         loadSubmissions();
+        loadAdminUsersList();
       } else {
         if(userPill) {
           userPill.className = "user-pill";
@@ -844,9 +860,6 @@
 
       const xpDisp = document.getElementById('userXpDisplay');
       if(xpDisp) xpDisp.innerText = `${userXP.toLocaleString()} XP`;
-      
-      const lbName = document.getElementById('lbUserName');
-      if(lbName) lbName.innerText = userNickname ? `@${userNickname} ${activeBadge ? '['+activeBadge+']' : ''} [Klan: ${userClanName}]` : "İstifadəçi";
 
       const streakEl = document.getElementById('streakCount');
       if(streakEl) streakEl.innerText = userStreak;
@@ -855,6 +868,19 @@
       if(clanEl) clanEl.innerText = userClanName !== "Hələ yoxdur" ? `${userClanName} (ID: ${userClanId})` : "Yoxdur (Qur / Qoşul)";
 
       if (userXP >= 1000 && !userBadges.includes("🌟 Əfsanəvi Oyunçu")) userBadges.push("🌟 Əfsanəvi Oyunçu");
+
+      if (userNickname) {
+        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+        if (usersDB[userNickname]) {
+          usersDB[userNickname].xp = userXP;
+          usersDB[userNickname].badges = userBadges;
+          usersDB[userNickname].avatar = userAvatar;
+          usersDB[userNickname].streak = userStreak;
+          usersDB[userNickname].clanName = userClanName;
+          usersDB[userNickname].clanId = userClanId;
+          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        }
+      }
 
       localStorage.setItem('rw_user_xp', userXP);
       localStorage.setItem('rw_user_nickname', userNickname);
@@ -865,6 +891,93 @@
       localStorage.setItem('rw_user_streak', userStreak);
       localStorage.setItem('rw_user_clan_name', userClanName);
       localStorage.setItem('rw_user_clan_id', userClanId);
+
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const lbList = document.getElementById('leaderboardList');
+      if(!lbList) return;
+
+      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+      
+      if (userNickname && (!usersDB[userNickname])) {
+        usersDB[userNickname] = {
+          fullname: userFullName,
+          xp: userXP,
+          badges: userBadges,
+          avatar: userAvatar,
+          clanName: userClanName
+        };
+      }
+
+      let sortedUsers = Object.keys(usersDB).map(nick => {
+        return {
+          nickname: nick,
+          ...usersDB[nick]
+        };
+      }).sort((a, b) => b.xp - a.xp);
+
+      if (sortedUsers.length === 0) {
+        lbList.innerHTML = `<div class="lb-row" style="justify-content:center; color: var(--text-muted);">Hələ qeydiyyatdan keçən istifadəçi yoxdur.</div>`;
+        return;
+      }
+
+      let html = "";
+      sortedUsers.forEach((u, index) => {
+        let medal = "🏅";
+        if (index === 0) medal = "🥇";
+        else if (index === 1) medal = "🥈";
+        else if (index === 2) medal = "🥉";
+        else medal = `#${index + 1}`;
+
+        html += `
+          <div class="lb-row">
+            <div class="lb-user">
+              <span style="font-weight:900; color:var(--primary-neon); width: 25px;">${medal}</span>
+              <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" alt="Avatar">
+              <div>
+                <strong style="color: #FFF;">@${u.nickname} ${u.nickname === userNickname && activeBadge ? '['+activeBadge+']' : ''}</strong>
+                <p style="color: var(--text-muted); font-size: 11px;">Klan: ${u.clanName || 'Hələ yoxdur'} • Qarabağ Universiteti</p>
+              </div>
+            </div>
+            <span style="color: var(--accent-gold); font-weight: 900;">${(u.xp || 0).toLocaleString()} XP</span>
+          </div>
+        `;
+      });
+
+      lbList.innerHTML = html;
+    }
+
+    function loadAdminUsersList() {
+      const container = document.getElementById('adminUsersListContainer');
+      if(!container) return;
+
+      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+      let keys = Object.keys(usersDB);
+
+      if (keys.length === 0) {
+        container.innerHTML = `<div class="empty-state">Sistemdə aktiv istifadəçi yoxdur.</div>`;
+        return;
+      }
+
+      let html = "";
+      keys.forEach(nick => {
+        let u = usersDB[nick];
+        html += `
+          <div style="background: #0F172A; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}" style="width:32px; height:32px; border-radius:50%; object-fit:cover;" alt="Avatar">
+              <div>
+                <strong style="color: #FFF;">@${nick}</strong> (${u.fullname || 'Ad yoxdur'})
+                <p style="color: var(--text-muted); font-size: 11px;">Klan: ${u.clanName || 'Hələ yoxdur'} • Streak: ${u.streak || 1} gün</p>
+              </div>
+            </div>
+            <span style="color: var(--accent-gold); font-weight: 800;">${(u.xp || 0).toLocaleString()} XP</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
     }
 
     function claimDailyStreak() {
@@ -884,7 +997,6 @@
       showToast("Gündəlik streak bonusu alındı: +50 XP!", "🔥");
     }
 
-    /* Klan İdarəetmə Funksiyaları */
     function openClanHub() {
       if(!checkAuthGuard()) return;
       playBeep(500);
@@ -1099,10 +1211,12 @@
       if (isAdminLoggedIn) {
         const tg = document.getElementById('authTabGroup');
         const rf = document.getElementById('registerAuthForm');
+        const lf = document.getElementById('loginAuthForm');
         const af = document.getElementById('adminAuthForm');
         const al = document.getElementById('adminLoggedInForm');
         if(tg) tg.style.display = 'none';
         if(rf) rf.style.display = 'none';
+        if(lf) lf.style.display = 'none';
         if(af) af.style.display = 'none';
         if(al) al.style.display = 'block';
       } else {
@@ -1112,9 +1226,11 @@
         if(al) al.style.display = 'none';
 
         if (userNickname) {
-          const lo = document.getElementById('loggedOutSection');
+          const rf = document.getElementById('registerAuthForm');
+          const lf = document.getElementById('loginAuthForm');
           const li = document.getElementById('loggedInSection');
-          if(lo) lo.style.display = 'none';
+          if(rf) rf.style.display = 'none';
+          if(lf) lf.style.display = 'none';
           if(li) li.style.display = 'block';
 
           const pDisp = document.getElementById('profileUserDisplay');
@@ -1138,12 +1254,10 @@
             }).join('');
           }
         } else {
-          const lo = document.getElementById('loggedOutSection');
           const li = document.getElementById('loggedInSection');
-          if(lo) lo.style.display = 'block';
           if(li) li.style.display = 'none';
+          switchAuthTab('register');
         }
-        switchAuthTab('register');
       }
     }
 
@@ -1154,20 +1268,33 @@
 
     function switchAuthTab(tab) {
       const regTab = document.getElementById('tabRegisterBtn');
+      const logTab = document.getElementById('tabLoginBtn');
       const admTab = document.getElementById('tabAdminBtn');
       const regForm = document.getElementById('registerAuthForm');
+      const logForm = document.getElementById('loginAuthForm');
       const admForm = document.getElementById('adminAuthForm');
 
       if(tab === 'register') {
         if(regTab) regTab.classList.add('active');
+        if(logTab) logTab.classList.remove('active');
         if(admTab) admTab.classList.remove('active');
         if(regForm) regForm.style.display = 'block';
+        if(logForm) logForm.style.display = 'none';
+        if(admForm) admForm.style.display = 'none';
+      } else if(tab === 'login') {
+        if(logTab) logTab.classList.add('active');
+        if(regTab) regTab.classList.remove('active');
+        if(admTab) admTab.classList.remove('active');
+        if(logForm) logForm.style.display = 'block';
+        if(regForm) regForm.style.display = 'none';
         if(admForm) admForm.style.display = 'none';
       } else {
         if(admTab) admTab.classList.add('active');
         if(regTab) regTab.classList.remove('active');
+        if(logTab) logTab.classList.remove('active');
         if(admForm) admForm.style.display = 'block';
         if(regForm) regForm.style.display = 'none';
+        if(logForm) logForm.style.display = 'none';
       }
     }
 
@@ -1192,6 +1319,13 @@
         updateAppUI();
         const avImg = document.getElementById('profileAvatarImg');
         if(avImg) avImg.src = userAvatar;
+        
+        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+        if(usersDB[userNickname]) {
+          usersDB[userNickname].avatar = userAvatar;
+          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        }
+
         showToast("Profil şəkliniz yeniləndi!", "🎉");
       };
       reader.readAsDataURL(selectedAvatarFile);
@@ -1221,27 +1355,67 @@
         return;
       }
 
+      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+      if(usersDB[nickname]) {
+        alert("Bu istifadəçi adı artıq qeydiyyatdan keçib! Zəhmət olmasa Giriş edin.");
+        switchAuthTab('login');
+        return;
+      }
+
+      usersDB[nickname] = {
+        fullname: fullname,
+        password: pass1,
+        xp: 100,
+        badges: ["🚀 İlk 10-luq"],
+        avatar: userAvatar,
+        streak: 1,
+        clanName: "Hələ yoxdur",
+        clanId: "------"
+      };
+      localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+
       userFullName = fullname;
       userNickname = nickname;
-
-      let registeredCount = parseInt(localStorage.getItem('rw_reg_count')) || 0;
-      registeredCount += 1;
-      localStorage.setItem('rw_reg_count', registeredCount);
-
-      if (registeredCount <= 10) {
-        userXP = 100;
-        if (!userBadges.includes("🚀 İlk 10-luq")) userBadges.push("🚀 İlk 10-luq");
-        confetti({ particleCount: 180, spread: 100 });
-        playBeep(800);
-        showToast(`Təbriklər! 100 XP və "İlk 10-luq" rozeti qazandınız!`, "🚀");
-      } else {
-        userXP = 0;
-        playBeep(500);
-        showToast(`Xoş gəldiniz @${nickname}!`, "✨");
-      }
+      userXP = 100;
+      userBadges = ["🚀 İlk 10-luq"];
 
       updateAppUI();
       closeAuthModal();
+      confetti({ particleCount: 180, spread: 100 });
+      playBeep(800);
+      showToast(`Təbriklər @${nickname}! Qeydiyyat uğurla yadda saxlanıldı (+100 XP).`, "🚀");
+    }
+
+    function handleLogin() {
+      const nickname = document.getElementById('loginNickname').value.trim();
+      const pass = document.getElementById('loginPass').value;
+
+      if (!nickname || !pass) {
+        alert("Zəhmət olmasa istifadəçi adı və şifrəni daxil edin!");
+        return;
+      }
+
+      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+      if(!usersDB[nickname] || usersDB[nickname].password !== pass) {
+        alert("İstifadəçi adı və ya şifrə səhvdir!");
+        playBeep(200);
+        return;
+      }
+
+      const uData = usersDB[nickname];
+      userNickname = nickname;
+      userFullName = uData.fullname;
+      userXP = uData.xp || 0;
+      userBadges = uData.badges || [];
+      userAvatar = uData.avatar || userAvatar;
+      userStreak = uData.streak || 1;
+      userClanName = uData.clanName || "Hələ yoxdur";
+      userClanId = uData.clanId || "------";
+
+      updateAppUI();
+      closeAuthModal();
+      playBeep(700);
+      showToast(`Xoş gəldiniz, @${nickname}!`, "✨");
     }
 
     function handleLogout() {
@@ -1305,6 +1479,7 @@
         
         pendingSubmissions.push({
           userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
+          nickname: userNickname,
           missionTitle: currentRoomTitle,
           reward: 100,
           image: base64Image
@@ -1410,18 +1585,29 @@
       let pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
       const sub = pendingSubmissions[index];
 
-      userXP += sub.reward;
-      if (!userBadges.includes("📸 Missiya Fatehi")) userBadges.push("📸 Missiya Fatehi");
-      if (userXP >= 100 && !userBadges.includes("👑 Reytinq Lideri")) userBadges.push("👑 Reytinq Lideri");
-      updateAppUI();
+      if (sub.nickname && sub.nickname === userNickname) {
+        userXP += sub.reward;
+        if (!userBadges.includes("📸 Missiya Fatehi")) userBadges.push("📸 Missiya Fatehi");
+        if (userXP >= 100 && !userBadges.includes("👑 Reytinq Lideri")) userBadges.push("👑 Reytinq Lideri");
+        updateAppUI();
+      } else if (sub.nickname) {
+        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
+        if (usersDB[sub.nickname]) {
+          usersDB[sub.nickname].xp = (usersDB[sub.nickname].xp || 0) + sub.reward;
+          if(!usersDB[sub.nickname].badges.includes("📸 Missiya Fatehi")) usersDB[sub.nickname].badges.push("📸 Missiya Fatehi");
+          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        }
+      }
 
       pendingSubmissions.splice(index, 1);
       localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
 
-      playBepper(880);
+      playBeep(880);
       confetti({ particleCount: 100 });
       showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
       loadSubmissions();
+      renderLeaderboard();
+      loadAdminUsersList();
     }
 
     function rejectSubmission(index) {
