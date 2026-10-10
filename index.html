@@ -80,10 +80,8 @@
       text-decoration: none; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; cursor: pointer;
     }
 
-    /* Özel Vektörel Logo Stili */
     .custom-svg-logo {
-      width: 36px;
-      height: 36px;
+      width: 36px; height: 36px;
       filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
     }
     
@@ -280,8 +278,7 @@
 
   <nav class="navbar">
     <div class="container nav-container">
-      <!-- Özel Hazırlanmış Vektörel Logo -->
-      <a href="#" class="logo" onclick="exitRoomToMain()">
+      <a class="logo" onclick="exitRoomToMain()">
         <svg class="custom-svg-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="50" cy="50" r="42" stroke="#38BDF8" stroke-width="6" stroke-opacity="0.3"/>
           <path d="M15 50H85" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
@@ -588,7 +585,7 @@
   </div>
 
   <footer>
-    <div class="container"><p>&copy; 2026 REALWORLD. Qarabağ Universiteti tələbəsi layihəsi.</p></div>
+    <div class="container"><p>&copy; 2026 REALWORLD. Qarabağ Universiteti tələbə layihəsi.</p></div>
   </footer>
 
   <script>
@@ -634,7 +631,8 @@
     let feedIndex = 0;
     setInterval(() => {
       feedIndex = (feedIndex + 1) % feedMessages.length;
-      document.getElementById('liveFeedText').innerHTML = `CANLI LENT: <strong>${feedMessages[feedIndex]}</strong>`;
+      const feedEl = document.getElementById('liveFeedText');
+      if(feedEl) feedEl.innerHTML = `CANLI LENT: <strong>${feedMessages[feedIndex]}</strong>`;
     }, 4000);
 
     function checkAuthGuard() {
@@ -649,25 +647,31 @@
     function updateAppUI() {
       const userPill = document.getElementById('userPill');
       if (isAdminLoggedIn) {
-        userPill.className = "admin-pill";
-        userPill.innerText = "🛡️ Admin Rejimi";
-        document.getElementById('adminNavBtn').style.display = "block";
-        document.getElementById('adminSection').classList.add('active');
+        if(userPill) {
+          userPill.className = "admin-pill";
+          userPill.innerText = "🛡️ Admin Rejimi";
+        }
+        const adminNav = document.getElementById('adminNavBtn');
+        if(adminNav) adminNav.style.display = "block";
+        const adminSec = document.getElementById('adminSection');
+        if(adminSec) adminSec.classList.add('active');
         loadSubmissions();
       } else {
-        userPill.className = "user-pill";
-        if (userNickname) {
-          document.getElementById('navAvatar').src = userAvatar;
-          document.getElementById('navUserText').innerText = `@${userNickname} (${userXP} XP)`;
-        } else {
-          document.getElementById('navUserText').innerText = "Qeydiyyat / Giriş";
+        if(userPill) {
+          userPill.className = "user-pill";
+          userPill.innerHTML = `<img id="navAvatar" src="${userAvatar}" alt="Avatar"> <span id="navUserText">${userNickname ? '@'+userNickname+' ('+userXP+' XP)' : 'Qeydiyyat / Giriş'}</span>`;
         }
-        document.getElementById('adminNavBtn').style.display = "none";
-        document.getElementById('adminSection').classList.remove('active');
+        const adminNav = document.getElementById('adminNavBtn');
+        if(adminNav) adminNav.style.display = "none";
+        const adminSec = document.getElementById('adminSection');
+        if(adminSec) adminSec.classList.remove('active');
       }
 
-      document.getElementById('userXpDisplay').innerText = `${userXP.toLocaleString()} XP`;
-      document.getElementById('lbUserName').innerText = userNickname ? `@${userNickname} ${activeBadge ? '['+activeBadge+']' : ''}` : "İstifadəçi";
+      const xpDisp = document.getElementById('userXpDisplay');
+      if(xpDisp) xpDisp.innerText = `${userXP.toLocaleString()} XP`;
+      
+      const lbName = document.getElementById('lbUserName');
+      if(lbName) lbName.innerText = userNickname ? `@${userNickname} ${activeBadge ? '['+activeBadge+']' : ''}` : "İstifadəçi";
 
       if (userXP >= 1000 && !userBadges.includes("🌟 Əfsanəvi Oyunçu")) userBadges.push("🌟 Əfsanəvi Oyunçu");
 
@@ -679,8 +683,15 @@
       localStorage.setItem('rw_active_badge', activeBadge);
     }
 
-    function toggleMobileMenu() { document.getElementById('navLinks').classList.toggle('mobile-open'); }
-    function closeMobileMenu() { document.getElementById('navLinks').classList.remove('mobile-open'); }
+    function toggleMobileMenu() { 
+      const links = document.getElementById('navLinks');
+      if(links) links.classList.toggle('mobile-open'); 
+    }
+    
+    function closeMobileMenu() { 
+      const links = document.getElementById('navLinks');
+      if(links) links.classList.remove('mobile-open'); 
+    }
 
     function filterCategory(cat, btn) {
       if (btn) {
@@ -706,14 +717,21 @@
       if (title.includes('Kəlbəcər') && !userBadges.includes("🏔️ Kəlbəcər Zirvəsi")) userBadges.push("🏔️ Kəlbəcər Zirvəsi");
       updateAppUI();
 
-      document.getElementById('mainHomeContent').style.display = 'none';
-      document.getElementById('roomViewPage').classList.add('active');
-      document.getElementById('activeRoomCodeText').innerText = code;
-      document.getElementById('activeRoomTitle').innerText = title;
+      const home = document.getElementById('mainHomeContent');
+      const room = document.getElementById('roomViewPage');
+      if(home) home.style.display = 'none';
+      if(room) room.classList.add('active');
+
+      const codeText = document.getElementById('activeRoomCodeText');
+      const titleText = document.getElementById('activeRoomTitle');
+      if(codeText) codeText.innerText = code;
+      if(titleText) titleText.innerText = title;
       
       const memberList = document.getElementById('roomMemberList');
-      memberList.innerHTML = `<div>● Siz (@${userNickname || 'Admin'})</div><div>● Zabil_07</div><div>● Leyla_Data</div>`;
-      document.getElementById('memberCount').innerText = "3";
+      if(memberList) memberList.innerHTML = `<div>● Siz (@${userNickname || 'Admin'})</div><div>● Zabil_07</div><div>● Leyla_Data</div>`;
+      
+      const memCount = document.getElementById('memberCount');
+      if(memCount) memCount.innerText = "3";
 
       loadChatMessages();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -721,35 +739,47 @@
 
     function exitRoomToMain() {
       playBeep(400);
-      document.getElementById('roomViewPage').classList.remove('active');
-      document.getElementById('mainHomeContent').style.display = 'block';
+      const home = document.getElementById('mainHomeContent');
+      const room = document.getElementById('roomViewPage');
+      if(room) room.classList.remove('active');
+      if(home) home.style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function openCreateRoomModal() {
       if (!checkAuthGuard()) return;
       playBeep(500);
-      document.getElementById('createRoomModal').classList.add('active');
+      const m = document.getElementById('createRoomModal');
+      if(m) m.classList.add('active');
     }
-    function closeCreateRoomModal() { document.getElementById('createRoomModal').classList.remove('active'); }
+    function closeCreateRoomModal() { 
+      const m = document.getElementById('createRoomModal');
+      if(m) m.classList.remove('active'); 
+    }
 
     function openQuickJoinModal() {
       if (!checkAuthGuard()) return;
       playBeep(500);
-      document.getElementById('quickJoinModal').classList.add('active');
+      const m = document.getElementById('quickJoinModal');
+      if(m) m.classList.add('active');
     }
-    function closeQuickJoinModal() { document.getElementById('quickJoinModal').classList.remove('active'); }
+    function closeQuickJoinModal() { 
+      const m = document.getElementById('quickJoinModal');
+      if(m) m.classList.remove('active'); 
+    }
 
     function confirmQuickJoin() {
-      const code = document.getElementById('modalJoinCode').value.trim();
+      const input = document.getElementById('modalJoinCode');
+      const code = input ? input.value.trim() : "";
       if (!code || code.length < 6) { alert("Zəhmət olmasa 6 rəqəmli otaq kodunu daxil edin!"); return; }
       closeQuickJoinModal();
       confetti({ particleCount: 100, spread: 70 });
-      enterRoom(code, `Xüsusi Otaq #${code}`);
+      enterRoom(code, `Otaq #${code}`);
     }
 
     function createRoomAction() {
-      const roomName = document.getElementById('roomNameInput').value.trim();
+      const input = document.getElementById('roomNameInput');
+      const roomName = input ? input.value.trim() : "";
       if (!roomName) { alert("Zəhmət olmasa otaq adını daxil edin!"); return; }
       const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
       confetti({ particleCount: 90, spread: 65 });
@@ -759,52 +789,81 @@
 
     function openAuthModal() {
       playBeep(500);
-      document.getElementById('authModal').classList.add('active');
+      const modal = document.getElementById('authModal');
+      if(modal) modal.classList.add('active');
+
       if (isAdminLoggedIn) {
-        document.getElementById('authTabGroup').style.display = 'none';
-        document.getElementById('registerAuthForm').style.display = 'none';
-        document.getElementById('adminAuthForm').style.display = 'none';
-        document.getElementById('adminLoggedInForm').style.display = 'block';
+        const tg = document.getElementById('authTabGroup');
+        const rf = document.getElementById('registerAuthForm');
+        const af = document.getElementById('adminAuthForm');
+        const al = document.getElementById('adminLoggedInForm');
+        if(tg) tg.style.display = 'none';
+        if(rf) rf.style.display = 'none';
+        if(af) af.style.display = 'none';
+        if(al) al.style.display = 'block';
       } else {
-        document.getElementById('authTabGroup').style.display = 'flex';
-        document.getElementById('adminLoggedInForm').style.display = 'none';
+        const tg = document.getElementById('authTabGroup');
+        const al = document.getElementById('adminLoggedInForm');
+        if(tg) tg.style.display = 'flex';
+        if(al) al.style.display = 'none';
+
         if (userNickname) {
-          document.getElementById('loggedOutSection').style.display = 'none';
-          document.getElementById('loggedInSection').style.display = 'block';
-          document.getElementById('profileUserDisplay').innerText = `@${userNickname} (${userFullName})`;
-          document.getElementById('profileXpval').innerText = `${userXP} XP`;
-          document.getElementById('profileAvatarImg').src = userAvatar;
-          document.getElementById('avatarUploadText').innerText = "📸 Profil Şəklini Seç (Cihazdan)";
+          const lo = document.getElementById('loggedOutSection');
+          const li = document.getElementById('loggedInSection');
+          if(lo) lo.style.display = 'none';
+          if(li) li.style.display = 'block';
+
+          const pDisp = document.getElementById('profileUserDisplay');
+          const xpVal = document.getElementById('profileXpval');
+          const avImg = document.getElementById('profileAvatarImg');
+          if(pDisp) pDisp.innerText = `@${userNickname} (${userFullName})`;
+          if(xpVal) xpVal.innerText = `${userXP} XP`;
+          if(avImg) avImg.src = userAvatar;
+
+          const upText = document.getElementById('avatarUploadText');
+          if(upText) upText.innerText = "📸 Profil Şəklini Seç (Cihazdan)";
           selectedAvatarFile = null;
           
           const badgeContainer = document.getElementById('userBadgesContainer');
-          badgeContainer.innerHTML = allBadgesList.map(b => {
-            const hasIt = userBadges.includes(b);
-            const isActive = activeBadge === b;
-            if (!hasIt) return `<span class="badge-pill" style="opacity:0.4; cursor:not-allowed;" title="Hələ qazanılmayıb">${b} (Kilidli)</span>`;
-            return `<span class="badge-pill ${isActive ? 'active-badge' : ''}" onclick="selectActiveBadge('${b}')">${b} ${isActive ? '✓ (Aktiv)' : ''}</span>`;
-          }).join('');
+          if(badgeContainer) {
+            badgeContainer.innerHTML = allBadgesList.map(b => {
+              const hasIt = userBadges.includes(b);
+              const isActive = activeBadge === b;
+              if (!hasIt) return `<span class="badge-pill" style="opacity:0.4; cursor:not-allowed;" title="Hələ qazanılmayıb">${b} (Kilidli)</span>`;
+              return `<span class="badge-pill ${isActive ? 'active-badge' : ''}" onclick="selectActiveBadge('${b}')">${b} ${isActive ? '✓ (Aktiv)' : ''}</span>`;
+            }).join('');
+          }
         } else {
-          document.getElementById('loggedOutSection').style.display = 'block';
-          document.getElementById('loggedInSection').style.display = 'none';
+          const lo = document.getElementById('loggedOutSection');
+          const li = document.getElementById('loggedInSection');
+          if(lo) lo.style.display = 'block';
+          if(li) li.style.display = 'none';
         }
         switchAuthTab('register');
       }
     }
 
-    function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
+    function closeAuthModal() { 
+      const m = document.getElementById('authModal');
+      if(m) m.classList.remove('active'); 
+    }
 
     function switchAuthTab(tab) {
+      const regTab = document.getElementById('tabRegisterBtn');
+      const admTab = document.getElementById('tabAdminBtn');
+      const regForm = document.getElementById('registerAuthForm');
+      const admForm = document.getElementById('adminAuthForm');
+
       if(tab === 'register') {
-        document.getElementById('tabRegisterBtn').classList.add('active');
-        document.getElementById('tabAdminBtn').classList.remove('active');
-        document.getElementById('registerAuthForm').style.display = 'block';
-        document.getElementById('adminAuthForm').style.display = 'none';
+        if(regTab) regTab.classList.add('active');
+        if(admTab) admTab.classList.remove('active');
+        if(regForm) regForm.style.display = 'block';
+        if(admForm) admForm.style.display = 'none';
       } else {
-        document.getElementById('tabAdminBtn').classList.add('active');
-        document.getElementById('tabRegisterBtn').classList.remove('active');
-        document.getElementById('adminAuthForm').style.display = 'block';
-        document.getElementById('registerAuthForm').style.display = 'none';
+        if(admTab) admTab.classList.add('active');
+        if(regTab) regTab.classList.remove('active');
+        if(admForm) admForm.style.display = 'block';
+        if(regForm) regForm.style.display = 'none';
       }
     }
 
@@ -812,7 +871,8 @@
       const file = event.target.files[0];
       if (file) {
         selectedAvatarFile = file;
-        document.getElementById('avatarUploadText').innerText = `✅ Seçildi: ${file.name}`;
+        const text = document.getElementById('avatarUploadText');
+        if(text) text.innerText = `✅ Seçildi: ${file.name}`;
       }
     }
 
@@ -826,7 +886,8 @@
       reader.onload = function(e) {
         userAvatar = e.target.result;
         updateAppUI();
-        document.getElementById('profileAvatarImg').src = userAvatar;
+        const avImg = document.getElementById('profileAvatarImg');
+        if(avImg) avImg.src = userAvatar;
         alert("Profil şəkliniz cihazdan yüklənərək yeniləndi! 🎉");
       };
       reader.readAsDataURL(selectedAvatarFile);
@@ -919,7 +980,8 @@
       const file = event.target.files[0];
       if(file) {
         selectedImageFile = file;
-        document.getElementById('fileUploadText').innerText = `✅ Seçildi: ${file.name}`;
+        const text = document.getElementById('fileUploadText');
+        if(text) text.innerText = `✅ Seçildi: ${file.name}`;
       }
     }
 
@@ -945,7 +1007,8 @@
         playBeep(700);
         alert("📸 Fotonuz uğurla admin panelə göndərildi! Admin təsdiq etdikdən sonra XP balansınıza əlavə olunacaq.");
         selectedImageFile = null;
-        document.getElementById('fileUploadText').innerText = "📸 Missiya Üçün Fotoşəkil Seç";
+        const text = document.getElementById('fileUploadText');
+        if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
 
         if (isAdminLoggedIn) {
           loadSubmissions();
@@ -956,16 +1019,25 @@
 
     function handleQuickJoin() {
       if (!checkAuthGuard()) return;
-      const code = document.getElementById('joinCodeInput').value.trim();
+      const input = document.getElementById('joinCodeInput');
+      const code = input ? input.value.trim() : "";
       if (!code || code.length < 6) { alert("Zəhmət olmasa 6 rəqəmli otaq kodunu daxil edin!"); return; }
       enterRoom(code, `Otaq #${code}`);
     }
 
-    function scrollToLeaderboard() { document.getElementById('leaderboardSection').scrollIntoView({ behavior: 'smooth' }); }
-    function scrollToAdminPanel() { document.getElementById('adminSection').scrollIntoView({ behavior: 'smooth' }); }
+    function scrollToLeaderboard() { 
+      const el = document.getElementById('leaderboardSection');
+      if(el) el.scrollIntoView({ behavior: 'smooth' }); 
+    }
+    
+    function scrollToAdminPanel() { 
+      const el = document.getElementById('adminSection');
+      if(el) el.scrollIntoView({ behavior: 'smooth' }); 
+    }
 
     function loadChatMessages() {
       const chatBox = document.getElementById('chatMessagesBox');
+      if(!chatBox) return;
       const messages = JSON.parse(localStorage.getItem(`rw_chat_${currentRoomCode}`)) || [
         { sender: "Sistem", text: "Otağa xoş gəldiniz! Söhbətə başlaya bilərsiniz." }
       ];
@@ -978,7 +1050,7 @@
 
     function sendChatMessage() {
       const input = document.getElementById('chatInput');
-      const text = input.value.trim();
+      const text = input ? input.value.trim() : "";
       if (!text) return;
 
       playBeep(500);
@@ -994,12 +1066,13 @@
       }
       updateAppUI();
 
-      input.value = "";
+      if(input) input.value = "";
       loadChatMessages();
     }
 
     function loadSubmissions() {
       const container = document.getElementById('submissionsContainer');
+      if(!container) return;
       const pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
 
       if (pendingSubmissions.length === 0) {
@@ -1054,30 +1127,32 @@
     }
 
     const canvas = document.getElementById('particles-canvas');
-    const ctx = canvas.getContext('2d');
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-    window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
+    if(canvas) {
+      const ctx = canvas.getContext('2d');
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+      window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
 
-    const particles = Array.from({ length: 25 }, () => ({
-      x: Math.random() * width, y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, radius: Math.random() * 2 + 1
-    }));
+      const particles = Array.from({ length: 25 }, () => ({
+        x: Math.random() * width, y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, radius: Math.random() * 2 + 1
+      }));
 
-    function animateParticles() {
-      ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.dy *= -1;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
-      });
-      requestAnimationFrame(animateParticles);
+      function animateParticles() {
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > width) p.vx *= -1;
+          if (p.y < 0 || p.y > height) p.dy *= -1;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+        });
+        requestAnimationFrame(animateParticles);
+      }
+      animateParticles();
     }
 
     updateAppUI();
-    animateParticles();
   </script>
 </body>
 </html>
