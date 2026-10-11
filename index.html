@@ -729,7 +729,7 @@
   </footer>
 
   <script>
-    // Sənin şəxsi PubNub açarların inteqrasiya olundu
+    // Sənin şəxsi PubNub açarların
     const pubnub = new PubNub({
       publishKey: "pub-c-af8bc880-50dd-4476-b656-c10a5702e1bb",
       subscribeKey: "sub-c-7958e38f-f395-40ef-8ef1-e4e77b415906",
@@ -1318,7 +1318,7 @@
       } else {
         if(admTab) admTab.classList.add('active');
         if(regTab) regTab.classList.remove('active');
-        if(logTab) regTab.classList.remove('active');
+        if(logTab) logTab.classList.remove('active');
         if(admForm) admForm.style.display = 'block';
         if(regForm) regForm.style.display = 'none';
         if(logForm) logForm.style.display = 'none';
@@ -1454,6 +1454,7 @@
       }
     }
 
+    // Şəklin ölçüsünü kiçildib PubNub-a göndərən funksiya (Optimize olundu)
     function submitMissionToAdmin() {
       if(!selectedImageFile) {
         alert("Zəhmət olmasa missiya fotosunu seçin!");
@@ -1462,27 +1463,40 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        const base64Image = e.target.result;
-        
-        const subData = {
-          id: 'sub_' + Math.random().toString(36).substring(2, 9),
-          userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
-          nickname: userNickname,
-          missionTitle: currentRoomTitle,
-          reward: 100,
-          image: base64Image
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const maxWidth = 500;
+          const scaleSize = maxWidth / img.width;
+          
+          canvas.width = (img.width > maxWidth) ? maxWidth : img.width;
+          canvas.height = (img.width > maxWidth) ? (img.height * scaleSize) : img.height;
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+
+          const subData = {
+            id: 'sub_' + Math.random().toString(36).substring(2, 9),
+            userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
+            nickname: userNickname,
+            missionTitle: currentRoomTitle,
+            reward: 100,
+            image: compressedBase64
+          };
+
+          pubnub.publish({
+            channel: 'rw_global_submissions',
+            message: { type: 'new', data: subData }
+          });
+
+          playBeep(700);
+          showToast("Fotonuz admin təsdiqinə göndərildi!", "📤");
+          selectedImageFile = null;
+          const text = document.getElementById('fileUploadText');
+          if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
         };
-
-        pubnub.publish({
-          channel: 'rw_global_submissions',
-          message: { type: 'new', data: subData }
-        });
-
-        playBeep(700);
-        showToast("Fotonuz admin təsdiqinə göndərildi!", "📤");
-        selectedImageFile = null;
-        const text = document.getElementById('fileUploadText');
-        if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
+        img.src = e.target.result;
       };
       reader.readAsDataURL(selectedImageFile);
     }
