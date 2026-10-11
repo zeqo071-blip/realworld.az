@@ -546,7 +546,7 @@
           <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelected(event)" />
         </div>
 
-        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="submitMissionToAdmin()">📤 Fotonu Adminə Göndər (+100 XP)</button>
+        <button class="btn btn-primary" id="btnSubmitMission" style="width: 100%; margin-top: 10px;" onclick="submitMissionToAdmin()">📤 Fotonu Adminə Göndər (+100 XP)</button>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -729,7 +729,6 @@
   </footer>
 
   <script>
-    // PubNub Bağlantısı
     const pubnub = new PubNub({
       publishKey: "pub-c-af8bc880-50dd-4476-b656-c10a5702e1bb",
       subscribeKey: "sub-c-7958e38f-f395-40ef-8ef1-e4e77b415906",
@@ -737,7 +736,7 @@
     });
 
     let globalUsersList = {};
-    let globalSubmissions = JSON.parse(localStorage.getItem('rw_saved_submissions')) || [];
+    let globalSubmissions = [];
 
     pubnub.subscribe({
       channels: ['rw_global_users', 'rw_global_chat', 'rw_global_submissions']
@@ -765,12 +764,10 @@
           if (msg.type === 'new') {
             if (!globalSubmissions.some(s => s.id === msg.data.id)) {
               globalSubmissions.push(msg.data);
-              localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
               renderSubmissions();
             }
           } else if (msg.type === 'approve') {
             globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
-            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
             renderSubmissions();
             if (msg.targetNickname === userNickname) {
               userXP += msg.reward;
@@ -779,7 +776,6 @@
             }
           } else if (msg.type === 'reject') {
             globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
-            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
             renderSubmissions();
           }
         }
@@ -1459,29 +1455,28 @@
       }
     }
 
-    // Görsel boyutunu ve kalitesini radikal şekilde düşüren güvenli yükleme
+    // Şəkli ImgBB Bulud Servisinə Yükləyən Tam Təhlükəsiz Funksiya
     function submitMissionToAdmin() {
       if(!selectedImageFile) {
         alert("Zəhmət olmasa missiya fotosunu seçin!");
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // PubNub boyut sınırını aşmamak için maks 400px genişlik ve düşük kalite
-          const maxWidth = 400;
-          const scaleSize = maxWidth / img.width;
-          
-          canvas.width = (img.width > maxWidth) ? maxWidth : img.width;
-          canvas.height = (img.width > maxWidth) ? (img.height * scaleSize) : img.height;
+      const btn = document.getElementById('btnSubmitMission');
+      if(btn) { btn.innerText = "⏳ Yüklənir..."; btn.disabled = true; }
 
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.3); // %30 kalite (Küçük veri)
+      const formData = new FormData();
+      formData.append("image", selectedImageFile);
+
+      // ImgBB API vasitəsilə buluda yükləmə
+      fetch("https://api.imgbb.com/1/upload?key=38b25121b6d05903b4146bb1269edcb4", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data && data.success) {
+          const imageUrl = data.data.url;
 
           const subData = {
             id: 'sub_' + Math.random().toString(36).substring(2, 9),
@@ -1489,16 +1484,10 @@
             nickname: userNickname || 'Anonim',
             missionTitle: currentRoomTitle,
             reward: 100,
-            image: compressedBase64
+            image: imageUrl
           };
 
-          // Yerel listeye kaydet
-          if (!globalSubmissions.some(s => s.id === subData.id)) {
-            globalSubmissions.push(subData);
-            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
-          }
-
-          // Yayınla
+          // PubNub vasitəsilə sadəcə qısa linki göndəririk (Həcm sorunu tamamilə bitdi)
           pubnub.publish({
             channel: 'rw_global_submissions',
             message: { type: 'new', data: subData }
@@ -1509,12 +1498,17 @@
           selectedImageFile = null;
           const text = document.getElementById('fileUploadText');
           if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
-          
-          renderSubmissions();
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(selectedImageFile);
+        } else {
+          alert("Foto yüklənərkən xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("İnternet bağlantısını yoxlayın və yenidən cəhd edin.");
+      })
+      .finally(() => {
+        if(btn) { btn.innerText = "📤 Fotonu Adminə Göndər (+100 XP)"; btn.disabled = false; }
+      });
     }
 
     function handleQuickJoin() {
@@ -1591,9 +1585,6 @@
         channel: 'rw_global_submissions',
         message: { type: 'approve', id: subId, targetNickname: targetNickname, reward: reward }
       });
-      globalSubmissions = globalSubmissions.filter(s => s.id !== subId);
-      localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
-      renderSubmissions();
       playBeep(880);
       confetti({ particleCount: 100 });
       showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
@@ -1604,9 +1595,6 @@
         channel: 'rw_global_submissions',
         message: { type: 'reject', id: subId }
       });
-      globalSubmissions = globalSubmissions.filter(s => s.id !== subId);
-      localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
-      renderSubmissions();
       showToast("Missiya rədd edildi.", "❌");
     }
 
