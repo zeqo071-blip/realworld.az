@@ -729,7 +729,7 @@
   </footer>
 
   <script>
-    // Sənin şəxsi PubNub açarların
+    // PubNub Bağlantısı
     const pubnub = new PubNub({
       publishKey: "pub-c-af8bc880-50dd-4476-b656-c10a5702e1bb",
       subscribeKey: "sub-c-7958e38f-f395-40ef-8ef1-e4e77b415906",
@@ -737,7 +737,7 @@
     });
 
     let globalUsersList = {};
-    let globalSubmissions = [];
+    let globalSubmissions = JSON.parse(localStorage.getItem('rw_saved_submissions')) || [];
 
     pubnub.subscribe({
       channels: ['rw_global_users', 'rw_global_chat', 'rw_global_submissions']
@@ -763,10 +763,14 @@
         }
         else if (channel === 'rw_global_submissions') {
           if (msg.type === 'new') {
-            globalSubmissions.push(msg.data);
-            renderSubmissions();
+            if (!globalSubmissions.some(s => s.id === msg.data.id)) {
+              globalSubmissions.push(msg.data);
+              localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
+              renderSubmissions();
+            }
           } else if (msg.type === 'approve') {
             globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
+            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
             renderSubmissions();
             if (msg.targetNickname === userNickname) {
               userXP += msg.reward;
@@ -775,6 +779,7 @@
             }
           } else if (msg.type === 'reject') {
             globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
+            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
             renderSubmissions();
           }
         }
@@ -1454,7 +1459,7 @@
       }
     }
 
-    // Şəklin ölçüsünü kiçildib PubNub-a göndərən funksiya (Optimize olundu)
+    // Görsel boyutunu ve kalitesini radikal şekilde düşüren güvenli yükleme
     function submitMissionToAdmin() {
       if(!selectedImageFile) {
         alert("Zəhmət olmasa missiya fotosunu seçin!");
@@ -1467,24 +1472,33 @@
         img.onload = function() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          const maxWidth = 500;
+          
+          // PubNub boyut sınırını aşmamak için maks 400px genişlik ve düşük kalite
+          const maxWidth = 400;
           const scaleSize = maxWidth / img.width;
           
           canvas.width = (img.width > maxWidth) ? maxWidth : img.width;
           canvas.height = (img.width > maxWidth) ? (img.height * scaleSize) : img.height;
 
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.3); // %30 kalite (Küçük veri)
 
           const subData = {
             id: 'sub_' + Math.random().toString(36).substring(2, 9),
-            userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
-            nickname: userNickname,
+            userName: `@${userNickname || 'Anonim'} (${userFullName || 'İstifadəçi'}) [Klan: ${userClanName}]`,
+            nickname: userNickname || 'Anonim',
             missionTitle: currentRoomTitle,
             reward: 100,
             image: compressedBase64
           };
 
+          // Yerel listeye kaydet
+          if (!globalSubmissions.some(s => s.id === subData.id)) {
+            globalSubmissions.push(subData);
+            localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
+          }
+
+          // Yayınla
           pubnub.publish({
             channel: 'rw_global_submissions',
             message: { type: 'new', data: subData }
@@ -1495,6 +1509,8 @@
           selectedImageFile = null;
           const text = document.getElementById('fileUploadText');
           if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
+          
+          renderSubmissions();
         };
         img.src = e.target.result;
       };
@@ -1575,6 +1591,9 @@
         channel: 'rw_global_submissions',
         message: { type: 'approve', id: subId, targetNickname: targetNickname, reward: reward }
       });
+      globalSubmissions = globalSubmissions.filter(s => s.id !== subId);
+      localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
+      renderSubmissions();
       playBeep(880);
       confetti({ particleCount: 100 });
       showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
@@ -1585,6 +1604,9 @@
         channel: 'rw_global_submissions',
         message: { type: 'reject', id: subId }
       });
+      globalSubmissions = globalSubmissions.filter(s => s.id !== subId);
+      localStorage.setItem('rw_saved_submissions', JSON.stringify(globalSubmissions));
+      renderSubmissions();
       showToast("Missiya rədd edildi.", "❌");
     }
 
