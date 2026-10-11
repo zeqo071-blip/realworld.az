@@ -460,7 +460,7 @@
         <span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 4px 10px; border-radius: 16px; font-weight: 800; font-size: 11px;">● Aktiv Sıralama</span>
       </div>
       <div id="leaderboardList">
-        <!-- Dinamik olaraq JS vasitəsilə dolur -->
+        <!-- Dinamik olaraq Firebase-dən dolur -->
       </div>
     </div>
 
@@ -477,9 +477,7 @@
 
       <!-- Aktiv İstifadəçilərin Siyahısı -->
       <h3 style="font-size: 16px; color: var(--accent-gold); margin-bottom: 12px; border-top: 1px solid var(--border-color); padding-top: 20px;">👥 Sistemdəki Aktiv İstifadəçilər</h3>
-      <div id="adminUsersListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;">
-        <!-- Dinamik olaraq dolur -->
-      </div>
+      <div id="adminUsersListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;"></div>
     </div>
 
   </div>
@@ -727,6 +725,40 @@
     <div class="container"><p>&copy; 2026 REALWORLD. Qarabağ Universiteti tələbə layihəsi.</p></div>
   </footer>
 
+  <!-- Firebase SDK-ları -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMYE6hm1SY22Ey145wzo2czRj7JNJVeYc",
+      authDomain: "realworld-az.firebaseapp.com",
+      projectId: "realworld-az",
+      storageBucket: "realworld-az.firebasestorage.app",
+      messagingSenderId: "555629797756",
+      appId: "1:555629797756:web:e01f70cb5452bb817204f9",
+      measurementId: "G-9D8ZSFLLH4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.db = db;
+    window.fsCollection = collection;
+    window.fsDoc = doc;
+    window.fsSetDoc = setDoc;
+    window.fsGetDocs = getDocs;
+    window.fsUpdateDoc = updateDoc;
+    window.fsDeleteDoc = deleteDoc;
+    window.fsOnSnapshot = onSnapshot;
+    window.fsAddDoc = addDoc;
+
+    // Firebase yüklənəndən sonra əsas funksiyaları işə salırıq
+    if(window.initAppAfterFirebase) {
+      window.initAppAfterFirebase();
+    }
+  </script>
+
   <script>
     function playBeep(freq = 440, duration = 0.08) {
       try {
@@ -869,17 +901,17 @@
 
       if (userXP >= 1000 && !userBadges.includes("🌟 Əfsanəvi Oyunçu")) userBadges.push("🌟 Əfsanəvi Oyunçu");
 
-      if (userNickname) {
-        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-        if (usersDB[userNickname]) {
-          usersDB[userNickname].xp = userXP;
-          usersDB[userNickname].badges = userBadges;
-          usersDB[userNickname].avatar = userAvatar;
-          usersDB[userNickname].streak = userStreak;
-          usersDB[userNickname].clanName = userClanName;
-          usersDB[userNickname].clanId = userClanId;
-          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
-        }
+      // İstifadəçi məlumatlarını Firestore-a sinxron edirik
+      if (userNickname && window.db) {
+        window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", userNickname), {
+          fullname: userFullName,
+          xp: userXP,
+          badges: userBadges,
+          avatar: userAvatar,
+          streak: userStreak,
+          clanName: userClanName,
+          clanId: userClanId
+        }, { merge: true }).catch(err => console.log(err));
       }
 
       localStorage.setItem('rw_user_xp', userXP);
@@ -891,32 +923,47 @@
       localStorage.setItem('rw_user_streak', userStreak);
       localStorage.setItem('rw_user_clan_name', userClanName);
       localStorage.setItem('rw_user_clan_id', userClanId);
-
-      renderLeaderboard();
     }
 
-    function renderLeaderboard() {
+    // Firebase Realtime Listener - Liderlik Cədvəli
+    function setupRealtimeListeners() {
+      if(!window.db) return;
+
+      // İstifadəçilər (Liderlik və Admin siyahısı üçün)
+      window.fsOnSnapshot(window.fsCollection(window.db, "rw_users_db"), (snapshot) => {
+        let usersDB = {};
+        snapshot.forEach((docSnap) => {
+          usersDB[docSnap.id] = docSnap.data();
+        });
+        renderLeaderboard(usersDB);
+        if(isAdminLoggedIn) loadAdminUsersList(usersDB);
+      });
+
+      // Təsdiq gözləyən missiya fotoları
+      window.fsOnSnapshot(window.fsCollection(window.db, "rw_pending_submissions"), (snapshot) => {
+        let subs = [];
+        snapshot.forEach((docSnap) => {
+          subs.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderSubmissions(subs);
+      });
+    }
+
+    window.initAppAfterFirebase = function() {
+      setupRealtimeListeners();
+      updateAppUI();
+    };
+
+    function renderLeaderboard(usersDB) {
       const lbList = document.getElementById('leaderboardList');
       if(!lbList) return;
-
-      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-      
-      if (userNickname && (!usersDB[userNickname])) {
-        usersDB[userNickname] = {
-          fullname: userFullName,
-          xp: userXP,
-          badges: userBadges,
-          avatar: userAvatar,
-          clanName: userClanName
-        };
-      }
 
       let sortedUsers = Object.keys(usersDB).map(nick => {
         return {
           nickname: nick,
           ...usersDB[nick]
         };
-      }).sort((a, b) => b.xp - a.xp);
+      }).sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
       if (sortedUsers.length === 0) {
         lbList.innerHTML = `<div class="lb-row" style="justify-content:center; color: var(--text-muted);">Hələ qeydiyyatdan keçən istifadəçi yoxdur.</div>`;
@@ -949,13 +996,12 @@
       lbList.innerHTML = html;
     }
 
-    function loadAdminUsersList() {
+    function loadAdminUsersList(usersDB) {
       const container = document.getElementById('adminUsersListContainer');
       if(!container) return;
+      if(!usersDB) return;
 
-      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
       let keys = Object.keys(usersDB);
-
       if (keys.length === 0) {
         container.innerHTML = `<div class="empty-state">Sistemdə aktiv istifadəçi yoxdur.</div>`;
         return;
@@ -1066,18 +1112,23 @@
 
     function loadClanChatMessages() {
       const chatBox = document.getElementById('clanChatMessagesBox');
-      if(!chatBox) return;
-      const messages = JSON.parse(localStorage.getItem(`rw_clan_chat_${userClanId}`)) || [
-        { sender: "Sistem", text: `"${userClanName}" klanının söhbət otağına xoş gəldiniz!` }
-      ];
-      chatBox.innerHTML = "";
-      messages.forEach(m => {
-        chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
+      if(!chatBox || !window.db) return;
+      window.fsOnSnapshot(window.fsCollection(window.db, `rw_clan_chat_${userClanId}`), (snapshot) => {
+        let messages = [];
+        snapshot.forEach(docSnap => messages.push(docSnap.data()));
+        chatBox.innerHTML = "";
+        if(messages.length === 0) {
+          chatBox.innerHTML = `<div class="chat-msg"><span>Sistem:</span> Klan söhbətinə xoş gəldiniz!</div>`;
+          return;
+        }
+        messages.forEach(m => {
+          chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
       });
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function sendClanChatMessage() {
+    async function sendClanChatMessage() {
       const input = document.getElementById('clanChatInput');
       const text = input ? input.value.trim() : "";
       if (!text) return;
@@ -1085,12 +1136,14 @@
 
       playBeep(500);
       const senderName = isAdminLoggedIn ? "Admin" : `@${userNickname}`;
-      let messages = JSON.parse(localStorage.getItem(`rw_clan_chat_${userClanId}`)) || [];
-      messages.push({ sender: senderName, text: text });
-      localStorage.setItem(`rw_clan_chat_${userClanId}`, JSON.stringify(messages));
-
+      if(window.db) {
+        await window.fsAddDoc(window.fsCollection(window.db, `rw_clan_chat_${userClanId}`), {
+          sender: senderName,
+          text: text,
+          time: Date.now()
+        });
+      }
       if(input) input.value = "";
-      loadClanChatMessages();
     }
 
     function toggleMobileMenu() { 
@@ -1145,7 +1198,7 @@
       const memCount = document.getElementById('memberCount');
       if(memCount) memCount.innerText = "3";
 
-      loadChatMessages();
+      loadRoomChatMessages();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast(`Otağa qoşuldunuz: ${title}`, "🏠");
     }
@@ -1314,18 +1367,15 @@
       }
 
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         userAvatar = e.target.result;
         updateAppUI();
         const avImg = document.getElementById('profileAvatarImg');
         if(avImg) avImg.src = userAvatar;
         
-        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-        if(usersDB[userNickname]) {
-          usersDB[userNickname].avatar = userAvatar;
-          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        if(window.db) {
+          await window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", userNickname), { avatar: userAvatar }, { merge: true });
         }
-
         showToast("Profil şəkliniz yeniləndi!", "🎉");
       };
       reader.readAsDataURL(selectedAvatarFile);
@@ -1338,7 +1388,7 @@
       showToast(`Aktiv rozet dəyişdirildi: ${badgeName}`, "🏅");
     }
 
-    function handleRegister() {
+    async function handleRegister() {
       const fullname = document.getElementById('regFullName').value.trim();
       const nickname = document.getElementById('regNickname').value.trim();
       const pass1 = document.getElementById('regPass1').value;
@@ -1355,24 +1405,27 @@
         return;
       }
 
-      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-      if(usersDB[nickname]) {
-        alert("Bu istifadəçi adı artıq qeydiyyatdan keçib! Zəhmət olmasa Giriş edin.");
-        switchAuthTab('login');
-        return;
-      }
+      if(window.db) {
+        const docRef = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
+        let exists = false;
+        docRef.forEach(d => { if(d.id === nickname) exists = true; });
+        if(exists) {
+          alert("Bu istifadəçi adı artıq qeydiyyatdan keçib! Zəhmət olmasa Giriş edin.");
+          switchAuthTab('login');
+          return;
+        }
 
-      usersDB[nickname] = {
-        fullname: fullname,
-        password: pass1,
-        xp: 100,
-        badges: ["🚀 İlk 10-luq"],
-        avatar: userAvatar,
-        streak: 1,
-        clanName: "Hələ yoxdur",
-        clanId: "------"
-      };
-      localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        await window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", nickname), {
+          fullname: fullname,
+          password: pass1,
+          xp: 100,
+          badges: ["🚀 İlk 10-luq"],
+          avatar: userAvatar,
+          streak: 1,
+          clanName: "Hələ yoxdur",
+          clanId: "------"
+        });
+      }
 
       userFullName = fullname;
       userNickname = nickname;
@@ -1386,7 +1439,7 @@
       showToast(`Təbriklər @${nickname}! Qeydiyyat uğurla yadda saxlanıldı (+100 XP).`, "🚀");
     }
 
-    function handleLogin() {
+    async function handleLogin() {
       const nickname = document.getElementById('loginNickname').value.trim();
       const pass = document.getElementById('loginPass').value;
 
@@ -1395,27 +1448,33 @@
         return;
       }
 
-      let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-      if(!usersDB[nickname] || usersDB[nickname].password !== pass) {
-        alert("İstifadəçi adı və ya şifrə səhvdir!");
-        playBeep(200);
-        return;
+      if(window.db) {
+        const docSnap = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
+        let found = null;
+        docSnap.forEach(d => {
+          if(d.id === nickname) found = d.data();
+        });
+
+        if(!found || found.password !== pass) {
+          alert("İstifadəçi adı və ya şifrə səhvdir!");
+          playBeep(200);
+          return;
+        }
+
+        userNickname = nickname;
+        userFullName = found.fullname;
+        userXP = found.xp || 0;
+        userBadges = found.badges || [];
+        userAvatar = found.avatar || userAvatar;
+        userStreak = found.streak || 1;
+        userClanName = found.clanName || "Hələ yoxdur";
+        userClanId = found.clanId || "------";
+
+        updateAppUI();
+        closeAuthModal();
+        playBeep(700);
+        showToast(`Xoş gəldiniz, @${nickname}!`, "✨");
       }
-
-      const uData = usersDB[nickname];
-      userNickname = nickname;
-      userFullName = uData.fullname;
-      userXP = uData.xp || 0;
-      userBadges = uData.badges || [];
-      userAvatar = uData.avatar || userAvatar;
-      userStreak = uData.streak || 1;
-      userClanName = uData.clanName || "Hələ yoxdur";
-      userClanId = uData.clanId || "------";
-
-      updateAppUI();
-      closeAuthModal();
-      playBeep(700);
-      showToast(`Xoş gəldiniz, @${nickname}!`, "✨");
     }
 
     function handleLogout() {
@@ -1473,28 +1532,24 @@
       }
 
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         const base64Image = e.target.result;
-        let pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
         
-        pendingSubmissions.push({
-          userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
-          nickname: userNickname,
-          missionTitle: currentRoomTitle,
-          reward: 100,
-          image: base64Image
-        });
+        if(window.db) {
+          await window.fsAddDoc(window.fsCollection(window.db, "rw_pending_submissions"), {
+            userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
+            nickname: userNickname,
+            missionTitle: currentRoomTitle,
+            reward: 100,
+            image: base64Image
+          });
+        }
 
-        localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
         playBeep(700);
         showToast("Fotonuz admin təsdiqinə göndərildi!", "📤");
         selectedImageFile = null;
         const text = document.getElementById('fileUploadText');
         if(text) text.innerText = "📸 Missiya Üçün Fotoşəkil Seç";
-
-        if (isAdminLoggedIn) {
-          loadSubmissions();
-        }
       };
       reader.readAsDataURL(selectedImageFile);
     }
@@ -1517,29 +1572,38 @@
       if(el) el.scrollIntoView({ behavior: 'smooth' }); 
     }
 
-    function loadChatMessages() {
+    function loadRoomChatMessages() {
       const chatBox = document.getElementById('chatMessagesBox');
-      if(!chatBox) return;
-      const messages = JSON.parse(localStorage.getItem(`rw_chat_${currentRoomCode}`)) || [
-        { sender: "Sistem", text: "Otağa xoş gəldiniz! Söhbətə başlaya bilərsiniz." }
-      ];
-      chatBox.innerHTML = "";
-      messages.forEach(m => {
-        chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
+      if(!chatBox || !window.db) return;
+      window.fsOnSnapshot(window.fsCollection(window.db, `rw_chat_${currentRoomCode}`), (snapshot) => {
+        let messages = [];
+        snapshot.forEach(docSnap => messages.push(docSnap.data()));
+        chatBox.innerHTML = "";
+        if(messages.length === 0) {
+          chatBox.innerHTML = `<div class="chat-msg"><span>Sistem:</span> Otağa xoş gəldiniz! Söhbətə başlaya bilərsiniz.</div>`;
+          return;
+        }
+        messages.forEach(m => {
+          chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
       });
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function sendChatMessage() {
+    async function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const text = input ? input.value.trim() : "";
       if (!text) return;
 
       playBeep(500);
       const senderName = isAdminLoggedIn ? "Admin" : `@${userNickname}`;
-      let messages = JSON.parse(localStorage.getItem(`rw_chat_${currentRoomCode}`)) || [];
-      messages.push({ sender: senderName, text: text });
-      localStorage.setItem(`rw_chat_${currentRoomCode}`, JSON.stringify(messages));
+      if(window.db) {
+        await window.fsAddDoc(window.fsCollection(window.db, `rw_chat_${currentRoomCode}`), {
+          sender: senderName,
+          text: text,
+          time: Date.now()
+        });
+      }
 
       let msgCount = parseInt(localStorage.getItem('rw_msg_count') || '0') + 1;
       localStorage.setItem('rw_msg_count', msgCount);
@@ -1549,13 +1613,11 @@
       updateAppUI();
 
       if(input) input.value = "";
-      loadChatMessages();
     }
 
-    function loadSubmissions() {
+    function renderSubmissions(pendingSubmissions) {
       const container = document.getElementById('submissionsContainer');
       if(!container) return;
-      const pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
 
       if (pendingSubmissions.length === 0) {
         container.innerHTML = `<div class="empty-state">Hələ ki təsdiq gözləyən missiya fotosu yoxdur.</div>`;
@@ -1573,50 +1635,52 @@
               <p>Mükafat: <strong style="color: var(--accent-gold);">${sub.reward} XP</strong></p>
             </div>
             <div class="actions">
-              <button class="btn btn-approve" onclick="approveSubmission(${index})">Təsdiq Et ✓</button>
-              <button class="btn btn-reject" onclick="rejectSubmission(${index})">Rədd Et ✕</button>
+              <button class="btn btn-approve" onclick="approveSubmission('${sub.id}', '${sub.nickname}', ${sub.reward})">Təsdiq Et ✓</button>
+              <button class="btn btn-reject" onclick="rejectSubmission('${sub.id}')">Rədd Et ✕</button>
             </div>
           </div>
         `;
       });
     }
 
-    function approveSubmission(index) {
-      let pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
-      const sub = pendingSubmissions[index];
+    async function approveSubmission(docId, targetNickname, reward) {
+      if(window.db) {
+        // İstifadecini Firebase-dən tapıb XP-sini artırırıq
+        const userDocRef = window.fsDoc(window.db, "rw_users_db", targetNickname);
+        const userSnap = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
+        
+        let targetData = null;
+        userSnap.forEach(d => { if(d.id === targetNickname) targetData = d.data(); });
 
-      if (sub.nickname && sub.nickname === userNickname) {
-        userXP += sub.reward;
-        if (!userBadges.includes("📸 Missiya Fatehi")) userBadges.push("📸 Missiya Fatehi");
-        if (userXP >= 100 && !userBadges.includes("👑 Reytinq Lideri")) userBadges.push("👑 Reytinq Lideri");
-        updateAppUI();
-      } else if (sub.nickname) {
-        let usersDB = JSON.parse(localStorage.getItem('rw_users_db')) || {};
-        if (usersDB[sub.nickname]) {
-          usersDB[sub.nickname].xp = (usersDB[sub.nickname].xp || 0) + sub.reward;
-          if(!usersDB[sub.nickname].badges.includes("📸 Missiya Fatehi")) usersDB[sub.nickname].badges.push("📸 Missiya Fatehi");
-          localStorage.setItem('rw_users_db', JSON.stringify(usersDB));
+        if(targetData) {
+          let newXp = (targetData.xp || 0) + reward;
+          let newBadges = targetData.badges || [];
+          if(!newBadges.includes("📸 Missiya Fatehi")) newBadges.push("📸 Missiya Fatehi");
+          if(newXp >= 100 && !newBadges.includes("👑 Reytinq Lideri")) newBadges.push("👑 Reytinq Lideri");
+
+          await window.fsSetDoc(userDocRef, { xp: newXp, badges: newBadges }, { merge: true });
+          
+          if(targetNickname === userNickname) {
+            userXP = newXp;
+            userBadges = newBadges;
+            updateAppUI();
+          }
         }
-      }
 
-      pendingSubmissions.splice(index, 1);
-      localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
+        // Şəkli gözləyənlərdən silirik
+        await window.fsDeleteDoc(window.fsDoc(window.db, "rw_pending_submissions", docId));
+      }
 
       playBeep(880);
       confetti({ particleCount: 100 });
       showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
-      loadSubmissions();
-      renderLeaderboard();
-      loadAdminUsersList();
     }
 
-    function rejectSubmission(index) {
-      let pendingSubmissions = JSON.parse(localStorage.getItem('rw_pending_submissions')) || [];
-      pendingSubmissions.splice(index, 1);
-      localStorage.setItem('rw_pending_submissions', JSON.stringify(pendingSubmissions));
-
+    async function rejectSubmission(docId) {
+      if(window.db) {
+        await window.fsDeleteDoc(window.fsDoc(window.db, "rw_pending_submissions", docId));
+      }
       showToast("Missiya rədd edildi.", "❌");
-      loadSubmissions();
     }
 
     const canvas = document.getElementById('particles-canvas');
@@ -1644,8 +1708,6 @@
       }
       animateParticles();
     }
-
-    updateAppUI();
   </script>
 </body>
 </html>
