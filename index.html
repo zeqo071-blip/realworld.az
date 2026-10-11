@@ -11,6 +11,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+  <!-- PubNub SDK -->
+  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.2.min.js"></script>
+
   <!-- Leaflet Xəritə Kitabxanası -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -460,7 +463,7 @@
         <span style="background: rgba(34, 197, 94, 0.2); color: var(--accent-green); padding: 4px 10px; border-radius: 16px; font-weight: 800; font-size: 11px;">● Aktiv Sıralama</span>
       </div>
       <div id="leaderboardList">
-        <!-- Dinamik olaraq Firebase-dən dolur -->
+        <!-- Dinamik dolur -->
       </div>
     </div>
 
@@ -725,41 +728,59 @@
     <div class="container"><p>&copy; 2026 REALWORLD. Qarabağ Universiteti tələbə layihəsi.</p></div>
   </footer>
 
-  <!-- Firebase SDK-ları -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDocs, updateDoc, deleteDoc, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCMYE6hm1SY22Ey145wzo2czRj7JNJVeYc",
-      authDomain: "realworld-az.firebaseapp.com",
-      projectId: "realworld-az",
-      storageBucket: "realworld-az.firebasestorage.app",
-      messagingSenderId: "555629797756",
-      appId: "1:555629797756:web:e01f70cb5452bb817204f9",
-      measurementId: "G-9D8ZSFLLH4"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.db = db;
-    window.fsCollection = collection;
-    window.fsDoc = doc;
-    window.fsSetDoc = setDoc;
-    window.fsGetDocs = getDocs;
-    window.fsUpdateDoc = updateDoc;
-    window.fsDeleteDoc = deleteDoc;
-    window.fsOnSnapshot = onSnapshot;
-    window.fsAddDoc = addDoc;
-
-    // Firebase yüklənəndən sonra əsas funksiyaları işə salırıq
-    if(window.initAppAfterFirebase) {
-      window.initAppAfterFirebase();
-    }
-  </script>
-
   <script>
+    // Sənin şəxsi PubNub açarların inteqrasiya olundu
+    const pubnub = new PubNub({
+      publishKey: "pub-c-af8bc880-50dd-4476-b656-c10a5702e1bb",
+      subscribeKey: "sub-c-7958e38f-f395-40ef-8ef1-e4e77b415906",
+      userId: "user_" + Math.random().toString(36).substring(2, 9)
+    });
+
+    let globalUsersList = {};
+    let globalSubmissions = [];
+
+    pubnub.subscribe({
+      channels: ['rw_global_users', 'rw_global_chat', 'rw_global_submissions']
+    });
+
+    pubnub.addListener({
+      message: function(event) {
+        const msg = event.message;
+        const channel = event.channel;
+
+        if (channel === 'rw_global_users') {
+          globalUsersList[msg.nickname] = msg;
+          renderLeaderboard();
+          if (isAdminLoggedIn) loadAdminUsersList();
+        } 
+        else if (channel === 'rw_global_chat') {
+          if (msg.roomCode === currentRoomCode) {
+            appendChatMessage(msg.sender, msg.text);
+          }
+          if (msg.clanId === userClanId) {
+            appendClanChatMessage(msg.sender, msg.text);
+          }
+        }
+        else if (channel === 'rw_global_submissions') {
+          if (msg.type === 'new') {
+            globalSubmissions.push(msg.data);
+            renderSubmissions();
+          } else if (msg.type === 'approve') {
+            globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
+            renderSubmissions();
+            if (msg.targetNickname === userNickname) {
+              userXP += msg.reward;
+              updateAppUI();
+              showToast("Təbriklər! Missiyanız təsdiqləndi (+100 XP)", "🎉");
+            }
+          } else if (msg.type === 'reject') {
+            globalSubmissions = globalSubmissions.filter(s => s.id !== msg.id);
+            renderSubmissions();
+          }
+        }
+      }
+    });
+
     function playBeep(freq = 440, duration = 0.08) {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -877,7 +898,7 @@
         if(adminNav) adminNav.style.display = "block";
         const adminSec = document.getElementById('adminSection');
         if(adminSec) adminSec.classList.add('active');
-        loadSubmissions();
+        renderSubmissions();
         loadAdminUsersList();
       } else {
         if(userPill) {
@@ -901,9 +922,9 @@
 
       if (userXP >= 1000 && !userBadges.includes("🌟 Əfsanəvi Oyunçu")) userBadges.push("🌟 Əfsanəvi Oyunçu");
 
-      // İstifadəçi məlumatlarını Firestore-a sinxron edirik
-      if (userNickname && window.db) {
-        window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", userNickname), {
+      if (userNickname) {
+        const userData = {
+          nickname: userNickname,
           fullname: userFullName,
           xp: userXP,
           badges: userBadges,
@@ -911,7 +932,12 @@
           streak: userStreak,
           clanName: userClanName,
           clanId: userClanId
-        }, { merge: true }).catch(err => console.log(err));
+        };
+        globalUsersList[userNickname] = userData;
+        pubnub.publish({
+          channel: 'rw_global_users',
+          message: userData
+        });
       }
 
       localStorage.setItem('rw_user_xp', userXP);
@@ -923,50 +949,18 @@
       localStorage.setItem('rw_user_streak', userStreak);
       localStorage.setItem('rw_user_clan_name', userClanName);
       localStorage.setItem('rw_user_clan_id', userClanId);
+      renderLeaderboard();
     }
 
-    // Firebase Realtime Listener - Liderlik Cədvəli
-    function setupRealtimeListeners() {
-      if(!window.db) return;
-
-      // İstifadəçilər (Liderlik və Admin siyahısı üçün)
-      window.fsOnSnapshot(window.fsCollection(window.db, "rw_users_db"), (snapshot) => {
-        let usersDB = {};
-        snapshot.forEach((docSnap) => {
-          usersDB[docSnap.id] = docSnap.data();
-        });
-        renderLeaderboard(usersDB);
-        if(isAdminLoggedIn) loadAdminUsersList(usersDB);
-      });
-
-      // Təsdiq gözləyən missiya fotoları
-      window.fsOnSnapshot(window.fsCollection(window.db, "rw_pending_submissions"), (snapshot) => {
-        let subs = [];
-        snapshot.forEach((docSnap) => {
-          subs.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        renderSubmissions(subs);
-      });
-    }
-
-    window.initAppAfterFirebase = function() {
-      setupRealtimeListeners();
-      updateAppUI();
-    };
-
-    function renderLeaderboard(usersDB) {
+    function renderLeaderboard() {
       const lbList = document.getElementById('leaderboardList');
       if(!lbList) return;
 
-      let sortedUsers = Object.keys(usersDB).map(nick => {
-        return {
-          nickname: nick,
-          ...usersDB[nick]
-        };
-      }).sort((a, b) => (b.xp || 0) - (a.xp || 0));
+      let sortedUsers = Object.keys(globalUsersList).map(nick => globalUsersList[nick])
+        .sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
       if (sortedUsers.length === 0) {
-        lbList.innerHTML = `<div class="lb-row" style="justify-content:center; color: var(--text-muted);">Hələ qeydiyyatdan keçən istifadəçi yoxdur.</div>`;
+        lbList.innerHTML = `<div class="lb-row" style="justify-content:center; color: var(--text-muted);">Sistemdə aktiv görünən istifadəçi yoxdur.</div>`;
         return;
       }
 
@@ -996,12 +990,11 @@
       lbList.innerHTML = html;
     }
 
-    function loadAdminUsersList(usersDB) {
+    function loadAdminUsersList() {
       const container = document.getElementById('adminUsersListContainer');
       if(!container) return;
-      if(!usersDB) return;
 
-      let keys = Object.keys(usersDB);
+      let keys = Object.keys(globalUsersList);
       if (keys.length === 0) {
         container.innerHTML = `<div class="empty-state">Sistemdə aktiv istifadəçi yoxdur.</div>`;
         return;
@@ -1009,7 +1002,7 @@
 
       let html = "";
       keys.forEach(nick => {
-        let u = usersDB[nick];
+        let u = globalUsersList[nick];
         html += `
           <div style="background: #0F172A; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -1058,7 +1051,6 @@
       if(idText) idText.innerText = userClanId;
       if(nameText) nameText.innerText = userClanName !== "Hələ yoxdur" ? `Klan: ${userClanName}` : "Klan Mərkəzi";
 
-      loadClanChatMessages();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1110,25 +1102,14 @@
       openClanHub();
     }
 
-    function loadClanChatMessages() {
+    function appendClanChatMessage(sender, text) {
       const chatBox = document.getElementById('clanChatMessagesBox');
-      if(!chatBox || !window.db) return;
-      window.fsOnSnapshot(window.fsCollection(window.db, `rw_clan_chat_${userClanId}`), (snapshot) => {
-        let messages = [];
-        snapshot.forEach(docSnap => messages.push(docSnap.data()));
-        chatBox.innerHTML = "";
-        if(messages.length === 0) {
-          chatBox.innerHTML = `<div class="chat-msg"><span>Sistem:</span> Klan söhbətinə xoş gəldiniz!</div>`;
-          return;
-        }
-        messages.forEach(m => {
-          chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-      });
+      if(!chatBox) return;
+      chatBox.innerHTML += `<div class="chat-msg"><span>${sender}:</span> ${text}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    async function sendClanChatMessage() {
+    function sendClanChatMessage() {
       const input = document.getElementById('clanChatInput');
       const text = input ? input.value.trim() : "";
       if (!text) return;
@@ -1136,13 +1117,10 @@
 
       playBeep(500);
       const senderName = isAdminLoggedIn ? "Admin" : `@${userNickname}`;
-      if(window.db) {
-        await window.fsAddDoc(window.fsCollection(window.db, `rw_clan_chat_${userClanId}`), {
-          sender: senderName,
-          text: text,
-          time: Date.now()
-        });
-      }
+      pubnub.publish({
+        channel: 'rw_global_chat',
+        message: { clanId: userClanId, sender: senderName, text: text }
+      });
       if(input) input.value = "";
     }
 
@@ -1194,11 +1172,7 @@
       
       const memberList = document.getElementById('roomMemberList');
       if(memberList) memberList.innerHTML = `<div>● Siz (@${userNickname || 'Admin'})</div><div>● Zabil_07</div><div>● Leyla_Data</div>`;
-      
-      const memCount = document.getElementById('memberCount');
-      if(memCount) memCount.innerText = "3";
 
-      loadRoomChatMessages();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast(`Otağa qoşuldunuz: ${title}`, "🏠");
     }
@@ -1344,7 +1318,7 @@
       } else {
         if(admTab) admTab.classList.add('active');
         if(regTab) regTab.classList.remove('active');
-        if(logTab) logTab.classList.remove('active');
+        if(logTab) regTab.classList.remove('active');
         if(admForm) admForm.style.display = 'block';
         if(regForm) regForm.style.display = 'none';
         if(logForm) logForm.style.display = 'none';
@@ -1367,15 +1341,11 @@
       }
 
       const reader = new FileReader();
-      reader.onload = async function(e) {
+      reader.onload = function(e) {
         userAvatar = e.target.result;
         updateAppUI();
         const avImg = document.getElementById('profileAvatarImg');
         if(avImg) avImg.src = userAvatar;
-        
-        if(window.db) {
-          await window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", userNickname), { avatar: userAvatar }, { merge: true });
-        }
         showToast("Profil şəkliniz yeniləndi!", "🎉");
       };
       reader.readAsDataURL(selectedAvatarFile);
@@ -1388,7 +1358,7 @@
       showToast(`Aktiv rozet dəyişdirildi: ${badgeName}`, "🏅");
     }
 
-    async function handleRegister() {
+    function handleRegister() {
       const fullname = document.getElementById('regFullName').value.trim();
       const nickname = document.getElementById('regNickname').value.trim();
       const pass1 = document.getElementById('regPass1').value;
@@ -1405,28 +1375,6 @@
         return;
       }
 
-      if(window.db) {
-        const docRef = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
-        let exists = false;
-        docRef.forEach(d => { if(d.id === nickname) exists = true; });
-        if(exists) {
-          alert("Bu istifadəçi adı artıq qeydiyyatdan keçib! Zəhmət olmasa Giriş edin.");
-          switchAuthTab('login');
-          return;
-        }
-
-        await window.fsSetDoc(window.fsDoc(window.db, "rw_users_db", nickname), {
-          fullname: fullname,
-          password: pass1,
-          xp: 100,
-          badges: ["🚀 İlk 10-luq"],
-          avatar: userAvatar,
-          streak: 1,
-          clanName: "Hələ yoxdur",
-          clanId: "------"
-        });
-      }
-
       userFullName = fullname;
       userNickname = nickname;
       userXP = 100;
@@ -1439,7 +1387,7 @@
       showToast(`Təbriklər @${nickname}! Qeydiyyat uğurla yadda saxlanıldı (+100 XP).`, "🚀");
     }
 
-    async function handleLogin() {
+    function handleLogin() {
       const nickname = document.getElementById('loginNickname').value.trim();
       const pass = document.getElementById('loginPass').value;
 
@@ -1448,33 +1396,14 @@
         return;
       }
 
-      if(window.db) {
-        const docSnap = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
-        let found = null;
-        docSnap.forEach(d => {
-          if(d.id === nickname) found = d.data();
-        });
+      userNickname = nickname;
+      userFullName = nickname;
+      userXP = userXP || 100;
 
-        if(!found || found.password !== pass) {
-          alert("İstifadəçi adı və ya şifrə səhvdir!");
-          playBeep(200);
-          return;
-        }
-
-        userNickname = nickname;
-        userFullName = found.fullname;
-        userXP = found.xp || 0;
-        userBadges = found.badges || [];
-        userAvatar = found.avatar || userAvatar;
-        userStreak = found.streak || 1;
-        userClanName = found.clanName || "Hələ yoxdur";
-        userClanId = found.clanId || "------";
-
-        updateAppUI();
-        closeAuthModal();
-        playBeep(700);
-        showToast(`Xoş gəldiniz, @${nickname}!`, "✨");
-      }
+      updateAppUI();
+      closeAuthModal();
+      playBeep(700);
+      showToast(`Xoş gəldiniz, @${nickname}!`, "✨");
     }
 
     function handleLogout() {
@@ -1532,18 +1461,22 @@
       }
 
       const reader = new FileReader();
-      reader.onload = async function(e) {
+      reader.onload = function(e) {
         const base64Image = e.target.result;
         
-        if(window.db) {
-          await window.fsAddDoc(window.fsCollection(window.db, "rw_pending_submissions"), {
-            userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
-            nickname: userNickname,
-            missionTitle: currentRoomTitle,
-            reward: 100,
-            image: base64Image
-          });
-        }
+        const subData = {
+          id: 'sub_' + Math.random().toString(36).substring(2, 9),
+          userName: `@${userNickname} (${userFullName}) [Klan: ${userClanName}]`,
+          nickname: userNickname,
+          missionTitle: currentRoomTitle,
+          reward: 100,
+          image: base64Image
+        };
+
+        pubnub.publish({
+          channel: 'rw_global_submissions',
+          message: { type: 'new', data: subData }
+        });
 
         playBeep(700);
         showToast("Fotonuz admin təsdiqinə göndərildi!", "📤");
@@ -1572,60 +1505,40 @@
       if(el) el.scrollIntoView({ behavior: 'smooth' }); 
     }
 
-    function loadRoomChatMessages() {
+    function appendChatMessage(sender, text) {
       const chatBox = document.getElementById('chatMessagesBox');
-      if(!chatBox || !window.db) return;
-      window.fsOnSnapshot(window.fsCollection(window.db, `rw_chat_${currentRoomCode}`), (snapshot) => {
-        let messages = [];
-        snapshot.forEach(docSnap => messages.push(docSnap.data()));
-        chatBox.innerHTML = "";
-        if(messages.length === 0) {
-          chatBox.innerHTML = `<div class="chat-msg"><span>Sistem:</span> Otağa xoş gəldiniz! Söhbətə başlaya bilərsiniz.</div>`;
-          return;
-        }
-        messages.forEach(m => {
-          chatBox.innerHTML += `<div class="chat-msg"><span>${m.sender}:</span> ${m.text}</div>`;
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-      });
+      if(!chatBox) return;
+      chatBox.innerHTML += `<div class="chat-msg"><span>${sender}:</span> ${text}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    async function sendChatMessage() {
+    function sendChatMessage() {
       const input = document.getElementById('chatInput');
       const text = input ? input.value.trim() : "";
       if (!text) return;
 
       playBeep(500);
       const senderName = isAdminLoggedIn ? "Admin" : `@${userNickname}`;
-      if(window.db) {
-        await window.fsAddDoc(window.fsCollection(window.db, `rw_chat_${currentRoomCode}`), {
-          sender: senderName,
-          text: text,
-          time: Date.now()
-        });
-      }
-
-      let msgCount = parseInt(localStorage.getItem('rw_msg_count') || '0') + 1;
-      localStorage.setItem('rw_msg_count', msgCount);
-      if (msgCount >= 10 && !userBadges.includes("💬 Çat Masteri")) {
-        userBadges.push("💬 Çat Masteri");
-      }
-      updateAppUI();
+      
+      pubnub.publish({
+        channel: 'rw_global_chat',
+        message: { roomCode: currentRoomCode, sender: senderName, text: text }
+      });
 
       if(input) input.value = "";
     }
 
-    function renderSubmissions(pendingSubmissions) {
+    function renderSubmissions() {
       const container = document.getElementById('submissionsContainer');
       if(!container) return;
 
-      if (pendingSubmissions.length === 0) {
+      if (globalSubmissions.length === 0) {
         container.innerHTML = `<div class="empty-state">Hələ ki təsdiq gözləyən missiya fotosu yoxdur.</div>`;
         return;
       }
 
       container.innerHTML = '';
-      pendingSubmissions.forEach((sub, index) => {
+      globalSubmissions.forEach((sub) => {
         container.innerHTML += `
           <div class="sub-card">
             <img src="${sub.image}" class="sub-img" alt="Mission Photo">
@@ -1643,45 +1556,25 @@
       });
     }
 
-    async function approveSubmission(docId, targetNickname, reward) {
-      if(window.db) {
-        // İstifadecini Firebase-dən tapıb XP-sini artırırıq
-        const userDocRef = window.fsDoc(window.db, "rw_users_db", targetNickname);
-        const userSnap = await window.fsGetDocs(window.fsCollection(window.db, "rw_users_db"));
-        
-        let targetData = null;
-        userSnap.forEach(d => { if(d.id === targetNickname) targetData = d.data(); });
-
-        if(targetData) {
-          let newXp = (targetData.xp || 0) + reward;
-          let newBadges = targetData.badges || [];
-          if(!newBadges.includes("📸 Missiya Fatehi")) newBadges.push("📸 Missiya Fatehi");
-          if(newXp >= 100 && !newBadges.includes("👑 Reytinq Lideri")) newBadges.push("👑 Reytinq Lideri");
-
-          await window.fsSetDoc(userDocRef, { xp: newXp, badges: newBadges }, { merge: true });
-          
-          if(targetNickname === userNickname) {
-            userXP = newXp;
-            userBadges = newBadges;
-            updateAppUI();
-          }
-        }
-
-        // Şəkli gözləyənlərdən silirik
-        await window.fsDeleteDoc(window.fsDoc(window.db, "rw_pending_submissions", docId));
-      }
-
+    function approveSubmission(subId, targetNickname, reward) {
+      pubnub.publish({
+        channel: 'rw_global_submissions',
+        message: { type: 'approve', id: subId, targetNickname: targetNickname, reward: reward }
+      });
       playBeep(880);
       confetti({ particleCount: 100 });
       showToast("Missiya təsdiq olundu və istifadəçiyə XP verildi!", "✅");
     }
 
-    async function rejectSubmission(docId) {
-      if(window.db) {
-        await window.fsDeleteDoc(window.fsDoc(window.db, "rw_pending_submissions", docId));
-      }
+    function rejectSubmission(subId) {
+      pubnub.publish({
+        channel: 'rw_global_submissions',
+        message: { type: 'reject', id: subId }
+      });
       showToast("Missiya rədd edildi.", "❌");
     }
+
+    updateAppUI();
 
     const canvas = document.getElementById('particles-canvas');
     if(canvas) {
